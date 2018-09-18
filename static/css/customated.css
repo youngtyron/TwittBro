@@ -1,0 +1,143 @@
+.scroll-message-box {
+height: 700px!important; /* высота нашего блока */
+width: 1000px!important; /* ширина нашего блока */
+background: #fff!important; /* цвет фона, белый */
+border: 1px solid #C1C1C1!important; /* размер и цвет границы блока */
+overflow-y: scroll!important; /* прокрутка по вертикали */
+margin-top: 20px;
+}
+
+
+.my-navbar{
+	background-color: purple!important;
+	height: 80px;
+	margin-top: 10px;
+	position: -webkit-sticky;
+	position: sticky;
+	top: 0;
+	z-index:50;
+
+}
+
+
+.three-columns{
+	margin-left: -80px!important;
+	/* width: 1400px; */
+}
+
+.open_image {
+	width: 700px;
+	height: 700px; /* Рaзмеры дoлжны быть фиксирoвaны */
+	border-radius: 5px;
+	border: 3px #000 solid;
+	background: #fff;
+	position: fixed; /* чтoбы oкнo былo в видимoй зoне в любoм месте */
+	top: 45%; /* oтступaем сверху 45%, oстaльные 5% пoдвинет скрипт */
+	left: 50%; /* пoлoвинa экрaнa слевa */
+	margin-top: -150px;
+	margin-left: -150px; /* тут вся мaгия центрoвки css, oтступaем влевo и вверх минус пoлoвину ширины и высoты сooтветственнo =) */
+	display: none; /* в oбычнoм сoстoянии oкнa не дoлжнo быть */
+	opacity: 1; /* пoлнoстью прoзрaчнo для aнимирoвaния */
+	z-index: 5; /* oкнo дoлжнo быть нaибoлее бoльшем слoе */
+	padding: 20px 10px;
+}
+
+.image_close {
+	width: 21px;
+	height: 21px;
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	cursor: pointer;
+	display: block;
+}
+
+.post_detail{
+  text-decoration: none!important;
+
+}
+
+.post-text {
+  color: black;
+}
+
+
+.post-date {
+  color: black;
+}
+
+.email-hidden-form{
+	display: none;
+}
+
+.list-subscribs{
+  color: black;
+}
+
+.round-im {
+   border-radius: 100px!important; /* Радиус скругления */
+   border: 3px solid grey!important; /* Параметры рамки */
+
+}
+
+.round-im-100 {
+	border-radius: 100px!important; /* Радиус скругления */
+	border: 3px solid grey!important; /* Параметры рамки */
+	width: 100px;
+	height: 100px;
+}
+
+.round-im-50 {
+	border-radius: 50px!important; /* Радиус скругления */
+	border: 3px solid grey!important; /* Параметры рамки */
+	width: 50px;
+	height: 50px;
+}
+
+.round-im-25 {
+	border-radius: 25px!important; /* Радиус скругления */
+	border: 2px solid grey!important; /* Параметры рамки */
+	width: 25px;
+	height: 25px;
+}
+
+
+/* .post-column {
+		width: 99%!important;
+    border: 1px 4px solid black; /* Параметры рамки */
+    position:relative!important;
+    z-index:5;
+} */
+
+.notif-column {
+  /* display: block;  */
+   border: 4px solid black!important; /* Параметры рамки */
+   position:relative!important;
+   z-index:5;
+
+}
+
+.status-enter{
+  display: none;
+
+}
+
+.fa-times{
+    opacity: 0.3;
+}
+
+.hidden-post-form{
+  display: none;
+}
+
+#id_image_message{
+  display: none;
+}
+
+.com-column{
+  display: none;
+}
+
+.subs_onme_group{
+  display: none;
+}
