@@ -479,7 +479,7 @@ def change_password(request):
 
 @login_required
 def ajax_give_access(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         user = get_object_or_404(User, id= user_id)
         Admittance.objects.create(for_user = user, on_page = request.user)
         context = {'f': user.first_name, 'l': user.last_name}
@@ -487,7 +487,7 @@ def ajax_give_access(request, user_id):
 
 @login_required
 def ajax_black_book(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         user = get_object_or_404(User, id= user_id)
         admit = Admittance.objects.filter(for_user = user, on_page = request.user)
         if admit.exists():
@@ -500,7 +500,7 @@ def ajax_black_book(request, user_id):
 
 @login_required
 def ajax_posting(request, user_id):
-    if request.method == 'POST' and user_id == request.user.id:
+    if request.method == 'POST' and request.is_ajax and user_id == request.user.id:
         author = get_object_or_404(User, id = request.user.id)
         text = request.POST['text']
         images = request.FILES.getlist('image')
@@ -551,7 +551,7 @@ def ajax_posting(request, user_id):
 
 @login_required
 def ajax_write(request, user_id):
-    if request.method == "POST":
+    if request.method == "POST" and request.is_ajax:
         user = get_object_or_404(User, id = user_id)
         chats = Chat.objects.filter(member = user).filter(member = request.user)
         if chats.exists():
@@ -663,7 +663,7 @@ def liked_objects(request):
 
 @login_required
 def ajax_status(request, user_id):
-    if request.method == 'POST' and user_id == request.user.id:
+    if request.method == 'POST' and request.is_ajax and user_id == request.user.id:
         profile = get_object_or_404(Profile, user = request.user)
         profile.status = request.POST.get('status-status')
         profile.save()
@@ -673,7 +673,7 @@ def ajax_status(request, user_id):
 
 @login_required
 def ajax_status_from_news(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         profile = get_object_or_404(Profile, user = request.user)
         profile.status = request.POST.get('status-status')
         profile.save()
@@ -682,7 +682,7 @@ def ajax_status_from_news(request):
 
 @login_required
 def ajax_like(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -717,7 +717,7 @@ def ajax_like(request, user_id):
 
 @login_required
 def ajax_like_from_news(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -753,7 +753,7 @@ def ajax_like_from_news(request):
 
 @login_required
 def ajax_post_delete(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -768,7 +768,7 @@ def ajax_post_delete(request, user_id):
 
 @login_required
 def ajax_post_delete_from_news(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -783,7 +783,7 @@ def ajax_post_delete_from_news(request):
 
 @login_required
 def ajax_repost(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -820,7 +820,7 @@ def ajax_repost(request, user_id):
 
 @login_required
 def ajax_repost_from_news(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         dict_k = request.POST.keys()
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
@@ -858,7 +858,7 @@ def ajax_repost_from_news(request):
 
 @login_required
 def ajax_simple_subscribe(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         first_user = request.user
         second_user = get_object_or_404(User, id = user_id)
         subscrib = Subscrib.objects.filter(
@@ -885,7 +885,7 @@ def ajax_simple_subscribe(request, user_id):
 
 @login_required
 def ajax_simple_unsubscribe(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         first_user = request.user
         second_user = get_object_or_404(User, id = user_id)
         subscrib = Subscrib.objects.filter(
@@ -927,7 +927,7 @@ def notifications(request):
 
 @login_required
 def ajax_notif_update(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         user = request.user
         notifications = Notification.objects.filter(recipient = user)
         for notification in notifications:
@@ -937,7 +937,7 @@ def ajax_notif_update(request):
 
 @login_required
 def ajax_comment(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         post = get_object_or_404(Post, id = request.POST.get('id'))
         comment = Comment.objects.create(
                     commentator = request.user,
@@ -960,7 +960,7 @@ def ajax_comment(request, user_id):
 
 @login_required
 def ajax_comment_from_news(request):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         post = get_object_or_404(Post, id = request.POST.get('id'))
         comment = Comment.objects.create(
                     commentator = request.user,
@@ -984,7 +984,7 @@ def ajax_comment_from_news(request):
 
 @login_required
 def ajax_comment_comment(request, user_id):
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         elder_comment = get_object_or_404(Comment, id = request.POST.get('id2'))
         post = elder_comment.post
         comment = Comment.objects.create(
@@ -1009,10 +1009,7 @@ def ajax_comment_comment(request, user_id):
 
 @login_required
 def ajax_comment_comment_from_news(request):
-    print('---------')
-    print('HELLO')
-    print('---------')
-    if request.method == 'POST':
+    if request.method == 'POST' and request.is_ajax:
         elder_comment = get_object_or_404(Comment, id = request.POST.get('id2'))
         post = elder_comment.post
         comment = Comment.objects.create(
