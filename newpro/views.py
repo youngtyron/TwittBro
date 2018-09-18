@@ -788,34 +788,46 @@ def ajax_repost(request, user_id):
         post_id = (list(dict_k))[0]
         post = get_object_or_404(Post, id = post_id)
         if not post.already_reposted(user = request.user):
-            repost = Post.objects.create(
-                    author = request.user,
-                    repost = post,
-                    pub_date = datetime.datetime.now(),
-                    is_repost = True
-                    )
-            post.reposts_quanity = post.reposts_quanity + 1
-            post.save()
-            notification = Notification.objects.create(
-                            recipient = post.author,
-                            notificator = request.user,
-                            time = datetime.datetime.now(),
-                            text = 'shared your post',
-                            about = 'Repost',
-                            content_object = post
-                            )
-            context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
-            return JsonResponse(context)
+            if post.is_repost:
+                repost = Post.objects.create(
+                        author = request.user,
+                        repost = post.repost,
+                        pub_date = datetime.datetime.now(),
+                        is_repost = True
+                        )
+                post.repost.reposts_quanity = post.repost.reposts_quanity + 1
+                post.save()
+                notification = Notification.objects.create(
+                                recipient = post.repost.author,
+                                notificator = request.user,
+                                time = datetime.datetime.now(),
+                                text = 'shared your post',
+                                about = 'Repost',
+                                content_object = post.repost
+                                )
+                context = {'post_id' : post_id}
+                return JsonResponse(context)
+            else:
+                repost = Post.objects.create(
+                        author = request.user,
+                        repost = post,
+                        pub_date = datetime.datetime.now(),
+                        is_repost = True
+                        )
+                post.reposts_quanity = post.reposts_quanity + 1
+                post.save()
+                notification = Notification.objects.create(
+                                recipient = post.author,
+                                notificator = request.user,
+                                time = datetime.datetime.now(),
+                                text = 'shared your post',
+                                about = 'Repost',
+                                content_object = post
+                                )
+                context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
+                return JsonResponse(context)
         else:
-            posttype = ContentType.objects.get_for_model(post)
-            repost = Post.objects.get(author = request.user, repost = post)
-            repost.delete()
-            post.reposts_quanity = post.reposts_quanity - 1
-            post.save()
-            notification = Notification.objects.filter(recipient = post.author, notificator = request.user, content_type__pk=posttype.id, object_id = post_id)
-            if notification.exists():
-                notification.delete()
-            context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
+            context = {'already_reposted' : True, 'post_id' : post_id}
             return JsonResponse(context)
 
 @login_required
