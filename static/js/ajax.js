@@ -305,10 +305,22 @@ $(document).on('click','[name = "reposting"]', (function(e){
       data: post_id,
       processData: false,
       success : function(context){
-          dad = $('[name ="in-work"]');
-          num = dad.children('[name = "reposting"]');
-          num.html(context.num_reposts);
-          dad.attr('name', context.post_id);
+          if(context.already_reposted){
+            alert("You can't repost it twice")
+          }
+          else{
+            if (context.num_reposts){
+              dad = $('[name ="in-work"]');
+              num = dad.children('[name = "reposting"]');
+              num.html(context.num_reposts);
+              dad.attr('name', context.post_id);
+              alert('This post was cited!')
+            }
+            else {
+              $('[name ="in-work"]').attr('name', context.post_id);
+              alert('This post was cited!')
+            }
+          }
         } ,
     error :  function(error){
       alert('Error. Try again please!')
