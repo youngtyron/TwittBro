@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+      <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row text-center">
+
+      {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+    </div>
+
+    <div class="row">
+
+      <div class="col">
+
+        <div class="square_box_div">
+
+
+        <form action="" method ="post">
+          {% csrf_token %}
+            <div class="form-group" style="width: 300px; margin:0 auto;">
+              <label for="username">Username</label>
+              <input type="text" class="form-control" name="username" placeholder="Enter username">
+            </div>
+            <div class="form-group"style="width: 300px; margin:0 auto;">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" name="password" placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-dark cust-button" style="margin-left:100px; margin-top:15px;">Submit</button>
+        </form>
+        <p style="margin-left:100px; margin-top:15px;">Need an account?<a href = "{% url 'registration' %}">Register here!</a></p>
+        <a href="{% url 'password_reset' %}" style="margin-left:100px; margin-top:15px;">Forgot your password?</a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  {% endblock %}

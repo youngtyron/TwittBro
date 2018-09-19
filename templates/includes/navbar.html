@@ -1,0 +1,54 @@
+<nav class="navbar navbar-expand-lg navbar-dark  bg-dark my-navbar">
+  <a class="navbar-brand" href="#" style="font-family:Marker Felt, fantasy; font-weight: bold; font-style: italic;">TwittBro</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="{% url 'mywall' %}">My profile <span class="sr-only">(current)</span><i class="fas fa-user-circle"></i></a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="{% url 'news' %}">News <i class="fas fa-th-list"></i></a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="{% url 'messenger:chat_list' %}">Messages <i class="fas fa-envelope fa-1x"></i></a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="{% url 'notifications' %}">Notifications <i class="fas fa-bell"></i></a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="{% url 'liked_objects' %}">Liked <i class="fas fa-heart"></i></a>
+      </li>
+      <li class="nav-item dropdown active">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Settings <i class="fas fa-cog"></i>
+            </a>
+            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" href="{% url 'change_password' %}">Change password</a>
+              <a class="dropdown-item" href="{% url 'edit_profile' %}">Edit profile</a>
+            </div>
+      </li>
+    </ul>
+
+
+      <ul class="navbar-nav mr-right">
+          {% if user.is_authenticated %}
+          <li class="nav-item  active">
+            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+          </li>
+          {% else %}
+          <li class="nav-item  active">
+            <a class="nav-link" href="{% url 'login' %}">Login</a>
+          </li>
+          {% endif %}
+        </ul>
+    <form class="form-inline my-2 my-lg-0 searching" action="{% url 'search' %}" method="get">
+      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="question">
+      <button class="btn btn-outline-white my-2 my-sm-0" type="submit"><i class="fas fa-search"></i></button>
+    </form>
+
+  </div>
+</nav>

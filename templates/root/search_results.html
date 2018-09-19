@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-1.5">
+        <!-- <h>Profile</h>
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+        <img class='round-im' src="{{ profile.avatar_small.url }}">
+        {% if profile.status %}
+          <p>{{profile.status}}</p>
+        {% endif %}
+        {% if profile.user.id != request.user.id %}
+          <div class="subs-button">
+            {% if you_subscribed %}
+              <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
+            {% else %}
+              <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
+            {% endif %}
+          </div>
+        {% else %}
+            <a href="{% url 'avatarize' %}">Add avatar?</a>
+        {% endif %} -->
+      </div>
+      <div class="col">
+        <div>
+
+        <ul class="list-group notif-column">
+           {% for result in results %}
+              <li class="list-group-item">
+
+                <p>{{result.author.username}}</p>
+                <p>{{result.text}}</p>
+                <p>{{result.pub_date}}</p>
+
+              </li>
+           {% endfor %}
+        </ul>
+
+        </div>
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+    <script src="http://malsup.github.com/jquery.form.js"></script>
+    <script src = "{% static 'js/ajax.js' %}"></script>
+    <script src = "{% static 'js/myscripts.js' %}"></script>
+
+  {% endblock %}

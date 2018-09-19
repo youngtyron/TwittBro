@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-1.5">
+        <h>Profile</h>
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        {% if profile.status %}
+          <p>{{profile.status}}</p>
+        {% endif %}
+        {% if profile.user.id != request.user.id %}
+          <div class="subs-button">
+            {% if you_subscribed %}
+              <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
+            {% else %}
+              <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
+            {% endif %}
+          </div>
+        {% else %}
+            <a href="{% url 'avatarize' %}">Add avatar?</a>
+        {% endif %}
+      </div>
+      <div class="col">
+        <div>
+
+        <ul class="list-group notif-column">
+          {% for notification in notification %}
+
+            <li class="list-group-item">
+              {% if notification.about == 'Subscribe' %}
+
+                  <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}</p>
+                  <p>{{notification.time}}</p>
+
+              {% elif notification.about == 'Repost' %}
+
+                  <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                    <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
+                  <p>{{notification.time}}</p>
+
+              {% elif notification.about == 'PostComment' %}
+
+              <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
+              <p>{{notification.time}}</p>
+
+              {% elif notification.about == 'CommentComment' %}
+
+              <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+               "{{notification.content_object.short_text}}"</p>
+              <p>{{notification.time}}</p>
+
+              {% elif notification.about == 'Like' %}
+
+                  {% if not notification.content_object.is_repost %}
+
+                    <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                      <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
+
+                  {% else %}
+
+                    <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                      <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.repost.short_text}}"</a></p>
+
+
+                  {% endif %}
+
+                  </p>
+                  <p>{{notification.time}}</p>
+
+              {% endif %}
+            </li>
+
+          {% endfor %}
+        </ul>
+
+        </div>
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+    <script src = "{% static 'js/ajax-notification.js' %}"></script>
+    <script src = "{% static 'js/myscripts.js' %}"></script>
+
+  {% endblock %}
+
+
+  <!-- {% url 'posts:post_detail' notification.content_object.id %} -->
