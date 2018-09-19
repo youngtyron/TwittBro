@@ -453,7 +453,7 @@ def create_profile(request):
             new_profile.save()
             profile_id = new_profile.user.id
             messages.success(request, 'Your profile is created!', extra_tags='alert alert-success alert-dismissible fade-show')
-            return redirect ('wall', profile_id)
+            return redirect ('avatarize')
         else:
             form = ProfileForm()
             return render(request, 'profiles/create_profile.html', {'form':form})
@@ -910,6 +910,11 @@ def ajax_simple_unsubscribe(request, user_id):
 
 @login_required
 def avatarize(request):
+    create_url = "http://localhost:8000/create_profile/"
+    if request.META['HTTP_REFERER'] == create_url:
+        context = {'first_visit':True}
+    else:
+        context = {}
     if request.method == 'POST':
         form = AvatarForm(request.POST, request.FILES)
         if form.is_valid():
@@ -921,10 +926,12 @@ def avatarize(request):
             return redirect ('wall', user_id)
         else:
             form = AvatarForm()
-            return render(request, 'profiles/avatarize.html', {'form' : form})
+            context.update({'form' : form})
+            return render(request, 'profiles/avatarize.html', context)
     else:
         form = AvatarForm()
-        return render(request, 'profiles/avatarize.html', {'form' : form})
+        context.update({'form' : form})
+        return render(request, 'profiles/avatarize.html', context)
 
 @login_required
 def notifications(request):
