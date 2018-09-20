@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row text-center">
+
+      {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+    </div>
+
+    <div class="row">
+      <div class="col-1.5">
+          <h>First column</h>
+      </div>
+      <div class="col">
+
+      <ul class = 'list-group'>
+
+          <form action="{% url 'edit_profile' %}" method = 'post' class = 'edit-profile-form'>
+            {% csrf_token %}
+            <li class = 'list-group-item'>
+               <p class = 'email-flag'>Email: {{profile.user.email}}</p>
+               <!-- {{form_em.as_p}} -->
+               <p class = 'email-hidden-form'><label for="id_email">New email:</label> <input name="email" maxlength="100" class="form-control" id="id_email" type="text"></p>
+            </li>
+            <li class = 'list-group-item'>
+              {% if profile.is_closed %}
+                <p>Open your profile for all users?
+                 <input type="checkbox" name="private" value='open-it' style = 'margin-top: 10px;'> </p>
+              {% else %}
+                <p>Make your profile private?
+                 <input type="checkbox" name="private" value='close-it' style = 'margin-top: 10px;'> </p>
+              {% endif %}
+             </li>
+
+          </form>
+
+      </ul>
+
+      <button type="button" class="btn btn-dark cust-button save-changes">Save</button>
+
+
+      <p style="margin-top: 14px;"><a href="{% url 'delete_user_confirm' %}">You can delete your profile</a></p>
+
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+  {% block javascript %}
+
+
+    <script src = "{% static 'js/myscripts.js' %}"></script>
+
+  {% endblock %}
+
+
+  <!-- <p class = 'email-hidden-form'>New email: <textarea name="email" id="email" cols="1" rows="1" maxlength="50" class="form-control"></textarea></p> -->
