@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-1.5">
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+
+            <a href=""><img class='round-im-100' src="{{ profile.small_avatar_url }}" style="vertical-align: middle;"></a>
+            <div class="status">
+              {% if profile.status %}
+                <p class ='str-status'>{{profile.status}}</p>
+              {% endif %}
+              <p class = 'change-status'><a href="">Change status?</a></p>
+              <div class="form-status">
+                    <form action="" method="post" class= 'status-enter'>
+                        {% csrf_token %}
+                        {{ form_st.as_p }}
+                        <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
+                    </form>
+              </div>
+            </div>
+            <p><a href="{% url 'avatarize' %}">Add avatar?</a></p>
+
+            {% if notif == True %}
+              <p id= 'notif' name ='True'></p>
+            {% else %}
+              <p id= 'notif' name = 'False'></p>
+            {% endif %}
+      </div>
+      <div class="col">
+        <div>
+        <div class="scroll-message-box">
+        <ul class="list-group" id='message-list'>
+          <p class="page-number"  name = 1></p>
+           {% for message in messages %}
+
+                {% if  message.chat.is_group_chat %}
+
+                      {% if request.user == message.writer %}
+
+                            {% if message.has_two_readers %}
+
+                                  <li class="list-group-item {{message.writer.id}}" style ="background-color: white;">
+                                    <p class ='writer'>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                                    {% if message.text %}
+                                      <p>{{message.text}}</p>
+                                    {% endif %}
+                                    {% if message.image_box %}
+                                      <table>
+                                        <tr>
+
+                                          {% for image in message.image_box %}
+                                          <td>
+                                            <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                           </td>
+                                          {% endfor %}
+
+                                        </tr>
+                                      </table>
+                                    {% endif %}
+
+                                    <p class = 'date'>{{message.pub_date}}</p>
+                                  </li>
+
+                            {% else %}
+
+                                  <li class="list-group-item not-read-messages {{message.writer.id}}"  style ="background-color: rgb(247, 245, 245);">
+                                   <p>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                                   {% if message.text %}
+                                     <p>{{message.text}}</p>
+                                   {% endif %}
+                                   {% if message.image_box %}
+                                     <table>
+                                       <tr>
+
+                                         {% for image in message.image_box %}
+                                         <td>
+                                           <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                          </td>
+                                         {% endfor %}
+
+                                       </tr>
+                                     </table>
+                                   {% endif %}
+
+                                   <p>{{message.pub_date}}</p>
+                                 </li>
+
+                            {% endif %}
+
+                      {% else %}
+
+                            {% if request.user in message.recieved %}
+
+                                  <li class="list-group-item {{message.writer.id}}" style ="background-color: white;">
+                                    <p>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                                    {% if message.text %}
+                                      <p>{{message.text}}</p>
+                                    {% endif %}
+                                    {% if message.image_box %}
+                                      <table>
+                                        <tr>
+
+                                          {% for image in message.image_box %}
+                                          <td>
+                                            <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                           </td>
+                                          {% endfor %}
+
+                                        </tr>
+                                      </table>
+                                    {% endif %}
+
+
+                                    <p>{{message.pub_date}}</p>
+                                  </li>
+
+                            {% else %}
+
+                                  <li class="list-group-item not-read-messages {{message.writer.id}}"  style ="background-color: rgb(247, 245, 245);">
+                                   <p>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                                   {% if message.text %}
+                                     <p>{{message.text}}</p>
+                                   {% endif %}
+                                   {% if message.image_box %}
+                                     <table>
+                                       <tr>
+
+                                         {% for image in message.image_box %}
+                                         <td>
+                                           <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                          </td>
+                                         {% endfor %}
+
+                                       </tr>
+                                     </table>
+                                   {% endif %}
+
+                                   <p>{{message.pub_date}}</p>
+                                 </li>
+
+                            {% endif %}
+                      {% endif %}
+
+                 {% else %}
+
+                        {% if message.is_read == True %}
+
+                              <li class="list-group-item {{message.writer.id}}" style ="background-color: white;">
+                                <p>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                                {% if message.text %}
+                                  <p>{{message.text}}</p>
+                                {% endif %}
+                                {% if message.image_box %}
+                                  <table>
+                                    <tr>
+
+                                      {% for image in message.image_box %}
+                                      <td>
+                                        <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                       </td>
+                                      {% endfor %}
+                                    </tr>
+                                  </table>
+                                {% endif %}
+
+
+                                <p>{{message.pub_date}}</p>
+                              </li>
+
+                        {% else %}
+
+                              <li class="list-group-item not-read-messages {{message.writer.id}}"  style ="background-color: rgb(247, 245, 245);">
+                               <p>{{message.writer.first_name}} {{message.writer.last_name}}</p>
+                               {% if message.text %}
+                                 <p>{{message.text}}</p>
+                               {% endif %}
+                               {% if message.image_box %}
+                                 <table>
+                                   <tr>
+
+
+                                     {% for image in message.image_box %}
+                                     <td>
+                                       <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
+                                      </td>
+                                     {% endfor %}
+
+                                   </tr>
+                                 </table>
+                               {% endif %}
+
+                               <p>{{message.pub_date}}</p>
+                             </li>
+
+                        {% endif %}
+
+                {% endif %}
+
+          {% endfor %}
+          <p id='scroll-to-id'></p>
+        </ul>
+      </div>
+
+
+
+
+
+              <form action="" method="post" id="messaging" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+
+                      <label for="id_text">Text:</label>
+                      <textarea name="text" id="id_text" cols="1" rows="2" maxlength="1000" class="form-control"></textarea>
+                    </div>
+
+                    <p><label for="id_image"></label>
+                    <input name="image" accept="image/*" multiple="" id="id_image" type="file" style = 'display: none;'></p>
+
+                    <input value="Submit" class="btn btn-dark cust-button" type="submit">
+                    <i class="far fa-file-image" id= 'show-image-form'></i>
+
+                </form>
+
+
+  </div>
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+  <script src="http://malsup.github.com/jquery.form.js"></script>
+  <script src = "{% static 'js/ajax-messages.js' %}"></script>
+  <script src = "{% static 'js/ajax-read.js' %}"></script>
+  <script src = "{% static 'js/myscripts.js' %}"></script>
+  <script src="{% static 'js/scroll-down-messages.js' %}"></script>
+  <script src = "{% static 'js/ajax-read.js' %}"></script>
+
+
+  {% endblock %}

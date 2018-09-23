@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-1.5">
+
+      </div>
+      <div class="col">
+        <div>
+
+          <h>Choice your companions</h>
+
+        <ul class="list-group" id='message-list'>
+           {% for subscrib in subscribs %}
+           <div class="one-subscrib" name = "{{subscrib.to.id}}">
+                <li class="list-group-item ">
+                  <p><img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+                </li>
+           </div>
+           {% endfor %}
+
+        </ul>
+
+        </div>
+
+      <button type="success" class="btn btn-dark cust-button" style="margin-top: 10px;" id= 'make-choice'>Start chat</button>
+
+
+      <div class="hidden-redirect">
+
+
+
+        <form action="" id="redirect-form" method="POST" style = 'display:none'>
+          {% csrf_token%}
+        <input type="hidden" name="var" value="val">
+        </form>
+
+
+      </div>
+
+
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+  <script src="http://malsup.github.com/jquery.form.js"></script>
+  <script src = "{% static 'js/ajax-messages.js' %}"></script>
+  <script src = "{% static 'js/myscripts.js' %}"></script>
+
+  {% endblock %}

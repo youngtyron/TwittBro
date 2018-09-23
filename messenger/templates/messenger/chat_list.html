@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+
+  {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-1.5">
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+
+            <a href=""><img class='round-im-100' src="{{ profile.small_avatar_url }}" style="vertical-align: middle;"></a>
+            <div class="status">
+              {% if profile.status %}
+                <p class ='str-status'>{{profile.status}}</p>
+              {% endif %}
+              <p class = 'change-status'><a href="">Change status?</a></p>
+              <div class="form-status">
+                    <form action="" method="post" class= 'status-enter'>
+                        {% csrf_token %}
+                        {{ form_st.as_p }}
+                        <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
+                    </form>
+              </div>
+            </div>
+            <p><a href="{% url 'avatarize' %}">Add avatar?</a></p>
+            
+            {% if notif == True %}
+              <p id= 'notif' name ='True'></p>
+            {% else %}
+              <p id= 'notif' name = 'False'></p>
+            {% endif %}
+      </div>
+      <div class="col">
+
+        {% if unread == True %}
+          <p id= 'sign' name = 'True'></p>
+        {% else %}
+          <p id= 'sign' name ='False'></p>
+        {% endif %}
+
+        <div>
+
+        <ul class="list-group">
+           {% for chat in chat %}
+              <li class="list-group-item" >
+                  <a href="#" class = 'go-to-chat'>
+                    <form action="{% url 'messenger:chat' chat.id %}" class="this_chat" method="POST">
+                      {% csrf_token%}
+                    <input type="hidden" name="var" value="val">
+                    </form>
+                  {% if chat.is_not_group_chat %}
+                    <p><img class='round-im-50' src="{{chat.companion.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{chat.companion.first_name}} {{chat.companion.last_name}}</p>
+                  {% else %}
+                    <p><img class='round-im-50' src="{{chat.chat_small_pict_url}}" style="vertical-align: middle;">{{chat.name}}</p>
+                  {% endif %}
+                  {% if request.user in chat.facial_message.recieved and chat.facial_message.has_two_readers %}
+                    {% if chat.facial_message.text %}
+                      <p><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
+                    {% else %}
+                      <p><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
+                    {% endif %}
+                  {% else %}
+                    {% if chat.facial_message.text %}
+                      <p style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
+                    {% else %}
+                      <p style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
+                    {% endif %}
+                  {% endif %}
+                </a>
+              </li>
+
+           {% endfor %}
+
+        </ul>
+
+
+        <a href="{% url 'messenger:create_chat' %}">Start new chat</a>
+
+        </div>
+
+
+      </div>
+      <div class="col-2">
+        <h>Third column</h>
+      </div>
+    </div>
+
+  </div>
+
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+    <script src = "{% static 'js/myscripts.js' %}"></script>
+
+
+  {% endblock %}
