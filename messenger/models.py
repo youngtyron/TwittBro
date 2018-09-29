@@ -5,8 +5,6 @@ import datetime
 from PIL import Image
 from imagekit.models.fields import ImageSpecField
 from imagekit.processors import ResizeToFit, Adjust,ResizeToFill
-# import os
-# from django.conf import settings
 
 
 class Chat(models.Model):
@@ -31,12 +29,7 @@ class Chat(models.Model):
         return last_message
 
     def members(self):
-        messages = self.messages.all()
-        memb = []
-        for m in messages:
-            memb.append(m.writer)
-        members = set(memb)
-        return members
+        return self.member.all()
 
     def user_didnt_read(self, user):
         messages = self.messages.all()

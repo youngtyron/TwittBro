@@ -11,7 +11,7 @@ urlpatterns = [
     path('chat/<int:chat_id>/ajax_scroll_messages/', views.ajax_scroll_messages),
     path('chat/<int:chat_id>/ajax_message/', views.ajax_message, name = 'ajax_message'),
     path('chat/<int:chat_id>/ajax_read_message/', views.ajax_read_message, name = 'ajax_read_message'),
-    path('start_chat/<user_id>/', views.start_chat, name = 'start_chat'),
+    # path('start_chat/<user_id>/', views.start_chat, name = 'start_chat'),
     path('create_chat/', views.create_chat, name = 'create_chat'),
     path('create_chat/ajax_make_chat/', views.ajax_make_chat, name = 'ajax_make_chat'),
 ]

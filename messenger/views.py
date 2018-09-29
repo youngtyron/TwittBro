@@ -10,32 +10,6 @@ from profiles.models import Profile, Subscrib
 
 
 @login_required
-def start_chat(request, user_id):
-    user = get_object_or_404(User, id = user_id)
-    me = get_object_or_404(User, id = request.user.id)
-    chat = Chat.objects.filter(member = user).filter(member = me).distinct()
-    this_chat = None
-    i = 0
-    while i<len(chat):
-        if chat[i].member.count()==2:
-            this_chat =chat[i]
-        i = i+1
-    if this_chat==None:
-        this_chat = Chat.objects.create()
-        this_chat.member.add(me, user)
-        this_chat.save()
-        user_p = get_object_or_404(Profile, user = user)
-        user_p.dialogues.add(this_chat)
-        user_p.save()
-        my_p = get_object_or_404(Profile, user = me)
-        my_p.dialogues.add(this_chat)
-        my_p.save()
-
-    return redirect ('messenger:chat', this_chat.id)
-
-
-
-@login_required
 def chat_list(request):
     chat = Chat.objects.filter(member = request.user)
     profile = request.user.profile
@@ -43,6 +17,8 @@ def chat_list(request):
         notif = True
     else:
         notif = False
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
     i = 0
     for ch in chat:
         if ch.is_not_group_chat:
@@ -53,7 +29,7 @@ def chat_list(request):
         unread = True
     else:
         unread = False
-    return render(request, 'messenger/chat_list.html', {'chat' : chat, 'unread' : unread, 'profile': profile, 'notif':notif})
+    return render(request, 'messenger/chat_list.html', {'chat' : chat, 'unread' : unread, 'profile': profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
 
 @login_required
 def ajax_scroll_messages(request, chat_id):
@@ -68,7 +44,7 @@ def ajax_scroll_messages(request, chat_id):
         i = 0
         for message in messages:
             message_context = {}
-            message_context.update({'f_n':message.writer.first_name, 'l_n':message.writer.last_name, 'date':message.pub_date, 'wr_id':message.writer.id})
+            message_context.update({'f_n':message.writer.first_name, 'l_n':message.writer.last_name, 'date':message.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'wr_id':message.writer.id})
             if message.text:
                 message_context.update({'text':message.text})
             if message.is_grey(request.user):
@@ -87,30 +63,52 @@ def ajax_scroll_messages(request, chat_id):
 def chat(request, chat_id):
     if request.method == 'POST':
         chat = get_object_or_404(Chat, id = chat_id)
+        if chat.is_group_chat():
+            this_is_chat = True
+        else:
+            this_is_chat = False
         profile = request.user.profile
         if profile.has_unread_notif():
             notif = True
         else:
             notif = False
+        subscrib_onme = Subscrib.objects.filter(to = request.user)
+        my_subscribs = Subscrib.objects.filter(who = request.user)
         form = MessageForm()
         form_im = ImageMessageForm()
         messages = Message.objects.filter(chat = chat)[:10][::-1]
-        unread = {}
-        i=0
-        while i <len(messages):
-            if request.user in messages[i].who_read.all():
-                unread[messages[i]]=True
-            else:
-                unread[messages[i]]=False
-            i = i+1
-        return render (request, 'messenger/chat.html', {'messages' : messages, 'form' : form, 'unread':unread, 'form_im':form_im, 'notif': notif, 'profile':profile})
+        i = 0
+        for d in profile.dialogues.all():
+            if d.has_unread_messages(request.user):
+                i = i+1
+        if i >0:
+            unread = True
+        else:
+            unread = False
+        return render (request, 'messenger/chat.html', {'chat':chat, 'messages' : messages, 'unread':unread, 'form' : form, 'form_im':form_im, 'notif': notif, 'profile':profile, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
     else:
         return HttpResponseRedirect(request.META.get('HTTP_REFERER','/'))
+
 
 @login_required
 def create_chat(request):
     subscribs = Subscrib.objects.filter(who = request.user)
-    return render (request, 'messenger/create_chat.html', {'subscribs': subscribs})
+    profile = Profile.objects.get(user = request.user)
+    if profile.has_unread_notif():
+        notif = True
+    else:
+        notif = False
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
+    i = 0
+    for d in profile.dialogues.all():
+        if d.has_unread_messages(request.user):
+            i = i+1
+    if i >0:
+        unread = True
+    else:
+        unread = False
+    return render (request, 'messenger/create_chat.html', {'subscribs': subscribs, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread})
 
 @login_required
 def ajax_message(request, chat_id):
@@ -118,6 +116,9 @@ def ajax_message(request, chat_id):
     if request.method == 'POST' and request.is_ajax:
         text = request.POST['text']
         images = request.FILES.getlist('image')
+        if not bool(text and text.strip()) and not images:
+            context = {'empty':True}
+            return JsonResponse(context)
         if text:
             if images:
                 if len(images)>10:
@@ -197,8 +198,8 @@ def ajax_make_chat(request):
                 chat.member.add(user)
                 profile = get_object_or_404(Profile, user = user)
                 profile.dialogues.add(chat)
-                context = {'chat_id' : chat.id}
-                return JsonResponse(context)
+            context = {'chat_id' : chat.id}
+            return JsonResponse(context)
         elif len(ids) == 1:
             user = get_object_or_404(User, id = ids[0])
             chat = Chat.objects.filter(member = request.user).filter(member = user)

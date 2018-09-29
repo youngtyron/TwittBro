@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
   {% load static %}
+  {% load cache %}
 
   {% block custom_css %}
     <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
@@ -13,38 +14,30 @@
   <div class="container">
 
     <div class="row">
-      <div class="col-1.5">
-        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+      {% cache 300 first request.user.username %}
 
-            <a href=""><img class='round-im-100' src="{{ profile.small_avatar_url }}" style="vertical-align: middle;"></a>
-            <div class="status">
-              {% if profile.status %}
-                <p class ='str-status'>{{profile.status}}</p>
-              {% endif %}
-              <p class = 'change-status'><a href="">Change status?</a></p>
-              <div class="form-status">
-                    <form action="" method="post" class= 'status-enter'>
-                        {% csrf_token %}
-                        {{ form_st.as_p }}
-                        <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
-                    </form>
-              </div>
-            </div>
-            <p><a href="{% url 'avatarize' %}">Add avatar?</a></p>
-            
+      <div class="first-column">
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        {% if profile.status %}
+          <p>{{profile.status}}</p>
+        {% endif %}
+
+
             {% if notif == True %}
               <p id= 'notif' name ='True'></p>
             {% else %}
               <p id= 'notif' name = 'False'></p>
             {% endif %}
-      </div>
-      <div class="col">
 
-        {% if unread == True %}
-          <p id= 'sign' name = 'True'></p>
-        {% else %}
-          <p id= 'sign' name ='False'></p>
-        {% endif %}
+            {% if unread == True %}
+              <p id= 'sign' name = 'True'></p>
+            {% else %}
+              <p id= 'sign' name ='False'></p>
+            {% endif %}
+      </div>
+      {% endcache %}
+      <div class="second-column">
 
         <div>
 
@@ -88,9 +81,38 @@
 
 
       </div>
-      <div class="col-2">
-        <h>Third column</h>
+      {% cache 300 third request.user.username %}
+      <div class="third-column">
+        <div class="btn-group" role="group" aria-label="First group">
+          <button type="button" class="btn btn-outline-info my_subs">Following</button>
+          <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
+        </div>
+        <ul class="list-group">
+          <div class="mysubs-group">
+          {% for subscrib in my_subscribs %}
+            <a href="{% url 'wall' subscrib.to.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
+        <ul class="list-group">
+          <div class="subs_onme_group">
+          {% for subscrib in subscrib_onme %}
+            <a href="{% url 'wall' subscrib.who.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.who.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.who.first_name}} {{subscrib.who.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
       </div>
+      {% endcache %}
     </div>
 
   </div>
