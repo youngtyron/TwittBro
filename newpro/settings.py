@@ -42,10 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'profiles',
     'posts',
-    'tags',
     'likes',
-    'dislikes',
-    'comments',
     'messenger',
     'imagekit',
     # 'captcha',  КАКИЕ ТО ПРОБЛЕМЫ С УСТАНОВКОЙ! ЗАПУСТИЛ PYTHON3 MANAGE.PY TEST CAPTCHA, НО ВЫДАЛО ОШИБКУ

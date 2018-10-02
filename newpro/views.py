@@ -9,7 +9,7 @@ from profiles.forms import RegistrationForm, ProfileForm, AvatarForm, StatusForm
 import datetime
 from datetime import timezone
 from datetime import timedelta
-from posts.forms import PostForm, CommentForm, CommentCommentForm
+from posts.forms import PostForm, CommentForm
 import json
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.contenttypes.models import ContentType
@@ -30,7 +30,151 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.core.exceptions import ValidationError
 from django.utils.http import urlsafe_base64_decode
+from django.views.generic.list import ListView
+from django.views.generic.detail import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
+from django.core.cache.utils import make_template_fragment_key
 
+class OnePostView(LoginRequiredMixin, DetailView):
+    model = Post
+    context_object_name = 'post'
+    template_name = 'root/one_post.html'
+    pk_url_kwarg = 'post_id'
+
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+
+        if slug is not None and (pk is None or self.query_pk_and_slug):
+            slug_field = self.get_slug_field()
+            queryset = queryset.filter(**{slug_field: slug})
+
+        if pk is None and slug is None:
+            raise AttributeError(
+                "Generic detail view %s must be called with either an object "
+                "pk or a slug in the URLconf." % self.__class__.__name__
+            )
+        try:
+            obj = queryset.get()
+        except queryset.model.DoesNotExist:
+            obj = 'object not exists'
+        return obj
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object == 'object not exists':
+            return redirect ('news')
+        else:
+            context = self.get_context_data(object=self.object)
+            return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user in self.object.who_liked():
+            context['red'] =  True
+        profile = get_object_or_404(Profile, user = self.request.user)
+        context['profile'] = profile
+        i = 0
+        for d in profile.dialogues.all():
+            if d.has_unread_messages(self.request.user):
+                i = i+1
+        if i >0:
+            context['unread'] = True
+        else:
+            context['unread'] = False
+        if profile.has_unread_notif():
+            context['notif'] = True
+        else:
+            context['notif'] = False
+        context['subscrib_onme'] = Subscrib.objects.filter(to = self.request.user)
+        context['my_subscribs'] = Subscrib.objects.filter(who = self.request.user)
+        context['form_com'] = CommentForm(prefix = 'comment')
+        return context
+
+
+class PeopleListView(LoginRequiredMixin, ListView):
+    model = Profile
+    context_object_name = 'people'
+    template_name = 'root/people.html'
+
+    def get_queryset(self):
+        name = self.request.GET.get('name')
+        if name != None:
+            N  = name.split(' ')
+            if N == ['']:
+                return Profile.objects.all()[:10]
+            i = 0
+            results = []
+            while i <len(N):
+                users = User.objects.filter(first_name__icontains = N[i]) | User.objects.filter(last_name__icontains = N[i])
+                print(users)
+                for u in users:
+                    results.append(u.profile)
+                i+=1
+            return results
+        else:
+            return Profile.objects.all()[:10]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = Profile.objects.get(user = self.request.user)
+        context['profile'] = profile
+        if profile.has_unread_notif():
+            notif = True
+        else:
+            notif = False
+        context['notif'] = notif
+        subscrib_onme = Subscrib.objects.filter(to = self.request.user)
+        my_subscribs = Subscrib.objects.filter(who = self.request.user)
+        context['subscrib_onme'] = subscrib_onme
+        context['my_subscribs'] = my_subscribs
+        i = 0
+        for d in profile.dialogues.all():
+            if d.has_unread_messages(self.request.user):
+                i = i+1
+        if i >0:
+            unread = True
+        else:
+            unread = False
+        context['unread'] = unread
+        return context
+
+@login_required
+def search(request):
+    q1 = request.GET.get('question')
+    Q  = q1.split(' ')
+    if Q == ['']:
+        return redirect('mywall')
+    i = 0
+    results = Post.objects.none()
+    while i <len(Q):
+        results = results|Post.objects.filter(text__icontains = Q[i])[:10]
+        i+=1
+    profile = Profile.objects.get(user = request.user)
+    if profile.has_unread_notif():
+        notif = True
+    else:
+        notif = False
+    i = 0
+    for d in profile.dialogues.all():
+        if d.has_unread_messages(request.user):
+            i = i+1
+    if i >0:
+        unread = True
+    else:
+        unread = False
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
+    form_com = CommentForm(prefix = 'comment')
+    context = {'results':results, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread, 'form_com':form_com}
+    return render(request, 'root/search_results.html', context)
 
 
 UserModel = get_user_model()
@@ -44,8 +188,6 @@ def news(request):
     subscribs = Subscrib.objects.filter(who = request.user)
     form_st = StatusForm(prefix = 'status')
     form_com = CommentForm(prefix = 'comment')
-    form_c_c = CommentCommentForm(prefix = 'com_com')
-    subscrib = Subscrib.objects.filter(who = request.user)
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     if profile.has_unread_notif():
         notif = True
@@ -66,81 +208,9 @@ def news(request):
     users.append(request.user)
     news_posts = Post.objects.filter(author__in = users)[:10]
     context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif, 'unread' : unread,
-                'form_com' : form_com, 'form_c_c':form_c_c, 'subscrib' : subscrib, 'subscrib_onme':subscrib_onme}
+                'form_com' : form_com, 'subscribs' : subscribs, 'subscrib_onme':subscrib_onme}
     return render (request, 'root/news.html', context)
 
-@login_required
-def ajax_scroll_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        old_page = int((list(dict_k))[0])
-        subscribs = Subscrib.objects.filter(who = request.user)
-        users = []
-        for s in subscribs:
-            user = s.to
-            users.append(user)
-        users.append(request.user)
-        first_border = old_page*10
-        second_border = first_border+10
-        posts = Post.objects.filter(author__in = users)[first_border:second_border]
-        context = {}
-        i = 0
-        for post in posts:
-            author_link = "http://localhost:8000/" + str(post.author.id)
-            if post.author.profile.avatar:
-                image = "<img src = " + post.author.profile.avatar_ultra.url + " class ='round-im-50'>"
-            else:
-                image = "<img src = '/static/images/default_ava.jpg' class ='round-im-50'>"
-            if request.user in post.who_liked():
-                you_liked = True
-            else:
-                you_liked = False
-            if post.is_repost:
-                repost = True
-                if post.repost.image_box():
-                    imagelist = ''
-                    for im in post.repost.image_box():
-                        imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
-                    post_context = {'text' : post.repost.text, 'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date, 'id':post.id,
-                                    'avatar' : image, 'link' : author_link, 'repost' : repost, 'images' : imagelist, 'you_liked' :you_liked, 'l_q' : post.likes_quanity,
-                                    'c_q':post.comments_quanity
-                                    }
-                else:
-                    post_context = {'text' : post.text, 'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date, 'id':post.id,
-                                    'avatar' : image, 'link' : author_link, 'repost' : repost, 'you_liked' :you_liked, 'l_q' : post.likes_quanity, 'c_q':post.comments_quanity
-                                    }
-            else:
-                repost = False
-                if post.image_box():
-                    imagelist = ''
-                    for im in post.image_box():
-                        imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
-                    post_context = {'text' : post.text, 'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date, 'id':post.id,
-                                    'avatar' : image, 'link' : author_link, 'repost' : repost, 'images' : imagelist, 'you_liked' :you_liked, 'l_q' : post.likes_quanity,
-                                    'c_q':post.comments_quanity
-                                    }
-                else:
-                    post_context = {'text' : post.text, 'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date, 'id':post.id,
-                                    'avatar' : image, 'link' : author_link, 'repost' : repost, 'you_liked' :you_liked, 'l_q' : post.likes_quanity,
-                                    'c_q':post.comments_quanity
-                                    }
-            if post.author != request.user:
-                post_context.update({'repost_button':True})
-            else:
-                post_context.update({'delete_cross':True})
-            if post.all_comments():
-                commentlist = ''
-                for com in post.all_comments():
-                    if com.is_to_comment():
-                        link = "http://localhost:8000/" + str(com.answer_to.commentator.id)
-                        commentlist = commentlist + "<li class='list-group-item one-comment' name ='"+ str(com.id) +"'>"+"<p>" + com.commentator.first_name + " " + com.commentator.last_name + "</p><p><a href="+link + ">" +com.answer_to.commentator.first_name+ "</a>, "+com.text+"</p><p>"+str(com.com_date)+"</p></li>"
-                    else:
-                        commentlist = commentlist + "<li class='list-group-item one-comment' name ='"+ str(com.id) +"'>"+"<p>" + com.commentator.first_name + " " + com.commentator.last_name + "</p><p>"+com.text+"</p><p>"+str(com.com_date)+"</p></li>"
-                post_context.update({'comments':commentlist})
-            post_context.update({'r_q': post.reposts_quanity})
-            context.update({i:post_context})
-            i = i + 1
-        return JsonResponse(context)
 
 def wall(request, user_id):
     profile = get_object_or_404(Profile, user = user_id)
@@ -158,7 +228,6 @@ def wall(request, user_id):
     subscrib = Subscrib.objects.filter(who = user_id)
     subscrib_onme = Subscrib.objects.filter(to = user_id)
     form_com = CommentForm(prefix = 'comment')
-    form_c_c = CommentCommentForm(prefix = 'com_com')
     if user_id == request.user.id:
         i = 0
         for d in profile.dialogues.all():
@@ -175,7 +244,7 @@ def wall(request, user_id):
         else:
             notif = False
         context = {'post' : posts, 'form' : form, 'profile' : profile, 'subscrib' : subscrib, 'form_st' : form_st, 'unread' : unread,
-                    'notif': notif, 'form_com' : form_com, 'form_c_c':form_c_c, 'subscrib_onme':subscrib_onme, 'taboo' : taboo}
+                    'notif': notif, 'form_com' : form_com, 'subscrib_onme':subscrib_onme, 'taboo' : taboo}
     else:
         if profile.is_follower(request.user):
             fol = True
@@ -186,50 +255,11 @@ def wall(request, user_id):
         curr_subscrib = Subscrib.objects.filter(who = request.user, to = profile.user)
         if curr_subscrib.exists():
             context = {'post' : posts, 'profile' : profile, 'subscrib' : subscrib, 'you_subscribed' : True, 'form_com' : form_com,
-                        'form_c_c':form_c_c, 'subscrib_onme':subscrib_onme, 'form_mes' : form_mes, 'form_im':form_im, 'taboo' : taboo, 'fol':fol, 'black':black}
+                        'subscrib_onme':subscrib_onme, 'form_mes' : form_mes, 'form_im':form_im, 'taboo' : taboo, 'fol':fol, 'black':black}
         else:
             context = {'post' : posts, 'profile' : profile, 'subscrib' : subscrib, 'you_subscribed' : False, 'form_com' : form_com,
-                        'form_c_c':form_c_c, 'subscrib_onme':subscrib_onme, 'form_mes' : form_mes, 'form_im':form_im, 'taboo' : taboo, 'fol':fol, 'black':black}
+                     'subscrib_onme':subscrib_onme, 'form_mes' : form_mes, 'form_im':form_im, 'taboo' : taboo, 'fol':fol, 'black':black}
     return render(request, 'root/wall.html', context)
-
-
-def ajax_scroll_wall(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        old_page = int((list(dict_k))[0])
-        first_border = old_page*10
-        second_border = first_border+10
-        posts = Post.objects.filter(author = user_id)[first_border:second_border]
-        context = {}
-        i = 0
-        for post in posts:
-            post_context = {'pub_date':post.pub_date, 'l_q':post.likes_quanity, 'r_q':post.reposts_quanity, 'c_q': post.comments_quanity, 'id':post.id}
-            if post.text:
-                post_context.update({'text':post.text})
-            if post.image_box():
-                imagelist = ''
-                for im in post.image_box():
-                    imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
-                post_context.update({'images':imagelist})
-            if post.is_repost:
-                author_link = "http://localhost:8000/" + str(post.repost.author.id)
-                post_context.update({'repost': True, 'author_link' : author_link, 'f_n':post.repost.author.first_name, 'l_n':post.repost.author.last_name})
-            if request.user == post.author:
-                post_context.update({'your_post':True})
-            if request.user in post.who_liked():
-                post_context.update({'red':True})
-            if post.all_comments():
-                commentlist = ''
-                for com in post.all_comments():
-                    if com.is_to_comment():
-                        link = "http://localhost:8000/" + str(com.answer_to.commentator.id)
-                        commentlist = commentlist + "<li class='list-group-item one-comment' name ='"+ str(com.id) +"'>"+"<p>" + com.commentator.first_name + " " + com.commentator.last_name + "</p><p><a href="+link + ">" +com.answer_to.commentator.first_name+ "</a>, "+com.text+"</p><p>"+str(com.com_date)+"</p></li>"
-                    else:
-                        commentlist = commentlist + "<li class='list-group-item one-comment' name ='"+ str(com.id) +"'>"+"<p>" + com.commentator.first_name + " " + com.commentator.last_name + "</p><p>"+com.text+"</p><p>"+str(com.com_date)+"</p></li>"
-                post_context.update({'comments':commentlist})
-            context.update({i:post_context})
-            i = i + 1
-        return JsonResponse(context)
 
 
 @login_required
@@ -316,20 +346,6 @@ class MyPasswordResetConfirmView(PasswordContextMixin, FormView):
         return context
 
 
-
-def search(request):
-    q1 = request.GET.get('question')
-    Q  = q1.split(' ')
-    if Q == ['']:
-        return redirect('mywall')
-    i = 0
-    results = Post.objects.none()
-    while i <len(Q):
-        results = results|Post.objects.filter(text__icontains = Q[i])
-        i+=1
-    context = {'results':results}
-    return render(request, 'root/search_results.html', context)
-
 @login_required
 def edit_profile(request):
     profile = get_object_or_404(Profile, user = request.user)
@@ -337,13 +353,10 @@ def edit_profile(request):
         form_em = ChangeEmailForm(request.POST)
         print(request.POST.get('email'))
         if request.POST.get('email') == '':
-            print('null')
             if request.POST.get('private') == 'close-it':
-                print('close')
                 profile.is_closed = True
                 profile.save()
             elif request.POST.get('private') == 'open-it':
-                print('open')
                 profile.is_closed = False
                 profile.save()
         else:
@@ -354,15 +367,27 @@ def edit_profile(request):
                 context = {'profile' : profile, 'form_em':form_em}
                 return render(request, 'profiles/edit_profile.html', context)
         if request.POST.get('private') == 'close-it':
-            print('close')
             profile.is_closed = True
             profile.save()
         elif request.POST.get('private') == 'open-it':
-            print('open')
             profile.is_closed = False
             profile.save()
     form_em = ChangeEmailForm()
-    context = {'profile' : profile, 'form_em':form_em}
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
+    if profile.has_unread_notif():
+        notif = True
+    else:
+        notif = False
+    i = 0
+    for d in profile.dialogues.all():
+        if d.has_unread_messages(request.user):
+            i = i+1
+    if i >0:
+        unread = True
+    else:
+        unread = False
+    context = {'profile' : profile, 'form_em':form_em, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'notif':notif, 'unread':unread}
     return render(request, 'profiles/edit_profile.html', context)
 
 def first_page(request):
@@ -476,437 +501,25 @@ def change_password(request):
         form = PasswordChangeForm(request.user)
     return render(request, 'profiles/change_password.html', {'form': form})
 
-
-@login_required
-def ajax_give_access(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        user = get_object_or_404(User, id= user_id)
-        Admittance.objects.create(for_user = user, on_page = request.user)
-        context = {'f': user.first_name, 'l': user.last_name}
-        return JsonResponse(context)
-
-@login_required
-def ajax_black_book(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        user = get_object_or_404(User, id= user_id)
-        admit = Admittance.objects.filter(for_user = user, on_page = request.user)
-        if admit.exists():
-            admit.delete()
-            context = {'f': user.first_name, 'l': user.last_name}
-            return JsonResponse(context)
-
-
-
-
-@login_required
-def ajax_posting(request, user_id):
-    if request.method == 'POST' and request.is_ajax and user_id == request.user.id:
-        author = get_object_or_404(User, id = request.user.id)
-        text = request.POST['text']
-        images = request.FILES.getlist('image')
-        if text:
-            post = Post.objects.create(
-                    text = text,
-                    author = author,
-                    pub_date = datetime.datetime.now()
-                    )
-            if images:
-                if len(images)>10:
-                    context = {'too_much': True}
-                    return JsonResponse(context)
-            if images:
-                imagelist = ''
-                for image in images:
-                    image = ImagePost.objects.create(
-                        post = post,
-                        image = image
-                        )
-                    imagelist = imagelist + "<img src = '" + image.image_ultra.url +  "' style='width: 50px; height: 50px'>" + " "
-                context = {'text' : post.text, 'images': imagelist, 'id' : post.id, 'num_l': post.likes_quanity}
-                return JsonResponse(context)
-            else:
-                context = {'text' : post.text, 'id' : post.id}
-                return JsonResponse(context)
-        else:
-            post = Post.objects.create(
-                    author = author,
-                    pub_date = datetime.datetime.now()
-                    )
-            if images:
-                if len(images)>10:
-                    context = {'too_much': True}
-                    return JsonResponse(context)
-            if images:
-                imagelist = ''
-                for image in images:
-                    image = ImagePost.objects.create(
-                        post = post,
-                        image = image
-                        )
-                    imagelist = imagelist + "<img src = '" + image.image_ultra.url +  "' style='width: 50px; height: 50px'>" + " "
-                context = {'images': imagelist, 'id' : post.id, 'num_l': post.likes_quanity}
-                return JsonResponse(context)
-
-
-
-@login_required
-def ajax_write(request, user_id):
-    if request.method == "POST" and request.is_ajax:
-        user = get_object_or_404(User, id = user_id)
-        chats = Chat.objects.filter(member = user).filter(member = request.user)
-        if chats.exists():
-            for ch in chats:
-                if ch.is_not_group_chat():
-                    chat = ch
-            if chat:
-                text = request.POST['text']
-                images = request.FILES.getlist('image')
-                if text:
-                    if images:
-                        if len(images)>10:
-                            context = {'too_much': True}
-                            return JsonResponse(context)
-                    message = Message.objects.create(
-                             chat = chat,
-                             text = text,
-                             writer = request.user,
-                             pub_date =datetime.datetime.now()
-                             )
-                    message.who_read.add(request.user)
-                    if images:
-                        for image in images:
-                            image = ImageMessage.objects.create(
-                                letter = message,
-                                image = image
-                                )
-                        context = {'sent':True}
-                    else:
-                        context = {'sent':True}
-                    return JsonResponse(context)
-                else:
-                    if images:
-                        if len(images)>10:
-                            context = {'too_much': True}
-                            return JsonResponse(context)
-                        message = Message.objects.create(
-                                chat = chat,
-                                writer = request.user,
-                                pub_date =datetime.datetime.now()
-                                )
-                        message.who_read.add(request.user)
-                        for image in images:
-                            image = ImageMessage.objects.create(
-                                letter = message,
-                                image = image
-                                )
-                        context = {'sent':True}
-                        return JsonResponse(context)
-            else:
-                chat = Chat.objects.create()
-                chat.member.add(request.user)
-                profile1 = get_object_or_404(Profile, user = request.user)
-                profile1.dialogues.add(chat)
-                chat.member.add(user)
-                profile2 = get_object_or_404(Profile, user = user)
-                profile2.dialogues.add(chat)
-                text = request.POST['text']
-                images = request.FILES.getlist('image')
-                if text:
-                    if images:
-                        if len(images)>10:
-                            context = {'too_much': True}
-                            return JsonResponse(context)
-                    message = Message.objects.create(
-                             chat = chat,
-                             text = text,
-                             writer = request.user,
-                             pub_date =datetime.datetime.now()
-                             )
-                    message.who_read.add(request.user)
-                    if images:
-                        for image in images:
-                            image = ImageMessage.objects.create(
-                                letter = message,
-                                image = image
-                                )
-                        context = {'sent':True}
-                    else:
-                        context = {'sent':True}
-                    return JsonResponse(context)
-                else:
-                    if images:
-                        if len(images)>10:
-                            context = {'too_much': True}
-                            return JsonResponse(context)
-                        message = Message.objects.create(
-                                chat = chat,
-                                writer = request.user,
-                                pub_date =datetime.datetime.now()
-                                )
-                        message.who_read.add(request.user)
-                        for image in images:
-                            image = ImageMessage.objects.create(
-                                letter = message,
-                                image = image
-                                )
-                        context = {'sent':True}
-                        return JsonResponse(context)
-
-
 @login_required
 def liked_objects(request):
     like = Like.objects.filter(liker = request.user).order_by('-when')
     profile = get_object_or_404(Profile, user = request.user)
-    return render(request, 'root/liked.html', {'like' : like, 'profile' : profile})
-
-
-
-@login_required
-def ajax_status(request, user_id):
-    if request.method == 'POST' and request.is_ajax and user_id == request.user.id:
-        profile = get_object_or_404(Profile, user = request.user)
-        profile.status = request.POST.get('status-status')
-        profile.save()
-        context = {'status' : profile.status}
-        return HttpResponse(json.dumps(context), content_type='application/json')
-
-
-@login_required
-def ajax_status_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        profile = get_object_or_404(Profile, user = request.user)
-        profile.status = request.POST.get('status-status')
-        profile.save()
-        context = {'status' : profile.status}
-        return JsonResponse(context)
-
-@login_required
-def ajax_like(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        owner_id = post.author.id
-        if not post.user_can_likes(request.user):
-            if not post.user_can_likes(request.user):
-                posttype = ContentType.objects.get_for_model(post)
-                old_like = Like.objects.get(content_type__pk=posttype.id, object_id = post_id, liker = request.user)
-                old_like.delete()
-                post.likes_quanity = post.likes_quanity - 1
-                post.save()
-                notification = Notification.objects.filter(recipient = post.author, notificator = request.user, content_type__pk=posttype.id, object_id = post_id)
-                if notification.exists():
-                    notification.delete()
-                context = {'num_likes' : post.likes_quanity, 'post_id' : post_id}
-                return HttpResponse (json.dumps(context), content_type='application/json')
-        else:
-            new_like = Like(content_object = post, liker = request.user)
-            new_like.save()
-            post.likes_quanity = post.likes_quanity + 1
-            post.save()
-            notification = Notification.objects.create(
-                            recipient = post.author,
-                            notificator = request.user,
-                            time = datetime.datetime.now(),
-                            text = 'liked your post',
-                            about = 'Like',
-                            content_object = post
-                            )
-            context = {'num_likes' : post.likes_quanity, 'post_id' : post_id}
-            return JsonResponse (context)
-
-@login_required
-def ajax_like_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        owner_id = post.author.id
-        if not post.user_can_likes(request.user):
-            if not post.user_can_likes(request.user):
-                posttype = ContentType.objects.get_for_model(post)
-                old_like = Like.objects.get(content_type__pk=posttype.id, object_id = post_id, liker = request.user)
-                old_like.delete()
-                post.likes_quanity = post.likes_quanity - 1
-                post.save()
-                notification = Notification.objects.filter(recipient = post.author, notificator = request.user, content_type__pk=posttype.id, object_id = post_id)
-                if notification.exists():
-                    notification.delete()
-                context = {'num_likes' : post.likes_quanity, 'post_id' : post_id}
-                return JsonResponse (context)
-        else:
-            new_like = Like(content_object = post, liker = request.user)
-            new_like.save()
-            post.likes_quanity = post.likes_quanity + 1
-            post.save()
-            notification = Notification.objects.create(
-                            recipient = post.author,
-                            notificator = request.user,
-                            time = datetime.datetime.now(),
-                            text = 'liked your post',
-                            about = 'Like',
-                            content_object = post
-                            )
-            context = {'num_likes' : post.likes_quanity, 'post_id' : post_id}
-            return JsonResponse (context)
-
-
-@login_required
-def ajax_post_delete(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        if post.author == request.user:
-            posttype = ContentType.objects.get_for_model(post)
-            likes = Like.objects.filter(content_type__pk=posttype.id, object_id = post_id)
-            notifications = Notification.objects.filter(content_type__pk=posttype.id, object_id = post_id)
-            likes.delete()
-            notifications.delete()
-            post.delete()
-            return HttpResponse('done')
-
-@login_required
-def ajax_post_delete_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        if post.author == request.user:
-            posttype = ContentType.objects.get_for_model(post)
-            likes = Like.objects.filter(content_type__pk=posttype.id, object_id = post_id)
-            notifications = Notification.objects.filter(content_type__pk=posttype.id, object_id = post_id)
-            likes.delete()
-            notifications.delete()
-            post.delete()
-            return HttpResponse('done')
-
-@login_required
-def ajax_repost(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        if not post.already_reposted(user = request.user):
-            if post.is_repost:
-                repost = Post.objects.create(
-                        author = request.user,
-                        repost = post.repost,
-                        pub_date = datetime.datetime.now(),
-                        is_repost = True
-                        )
-                post.repost.reposts_quanity = post.repost.reposts_quanity + 1
-                post.save()
-                notification = Notification.objects.create(
-                                recipient = post.repost.author,
-                                notificator = request.user,
-                                time = datetime.datetime.now(),
-                                text = 'shared your post',
-                                about = 'Repost',
-                                content_object = post.repost
-                                )
-                context = {'post_id' : post_id}
-                return JsonResponse(context)
-            else:
-                repost = Post.objects.create(
-                        author = request.user,
-                        repost = post,
-                        pub_date = datetime.datetime.now(),
-                        is_repost = True
-                        )
-                post.reposts_quanity = post.reposts_quanity + 1
-                post.save()
-                notification = Notification.objects.create(
-                                recipient = post.author,
-                                notificator = request.user,
-                                time = datetime.datetime.now(),
-                                text = 'shared your post',
-                                about = 'Repost',
-                                content_object = post
-                                )
-                context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
-                return JsonResponse(context)
-        else:
-            context = {'already_reposted' : True, 'post_id' : post_id}
-            return JsonResponse(context)
-
-@login_required
-def ajax_repost_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        dict_k = request.POST.keys()
-        post_id = (list(dict_k))[0]
-        post = get_object_or_404(Post, id = post_id)
-        if not post.already_reposted(user = request.user):
-            repost = Post.objects.create(
-                    author = request.user,
-                    repost = post,
-                    pub_date = datetime.datetime.now(),
-                    is_repost = True
-                    )
-            post.reposts_quanity = post.reposts_quanity + 1
-            post.save()
-            notification = Notification.objects.create(
-                            recipient = post.author,
-                            notificator = request.user,
-                            time = datetime.datetime.now(),
-                            text = 'shared your post',
-                            about = 'Repost',
-                            content_object = post
-                            )
-            context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
-            return JsonResponse(context)
-        else:
-            posttype = ContentType.objects.get_for_model(post)
-            repost = Post.objects.get(author = request.user, repost = post)
-            repost.delete()
-            post.reposts_quanity = post.reposts_quanity - 1
-            post.save()
-            notification = Notification.objects.filter(recipient = post.author, notificator = request.user, content_type__pk=posttype.id, object_id = post_id)
-            if notification.exists():
-                notification.delete()
-            context = {'num_reposts' : post.reposts_quanity, 'post_id' : post_id}
-            return JsonResponse(context)
-
-
-@login_required
-def ajax_simple_subscribe(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        first_user = request.user
-        second_user = get_object_or_404(User, id = user_id)
-        subscrib = Subscrib.objects.filter(
-                    who = first_user,
-                    to = second_user,
-                    )
-        if not subscrib.exists():
-            subscrib = Subscrib.objects.create(
-                        who = first_user,
-                        to = second_user,
-                        subs_date = datetime.datetime.now(),
-                        )
-            notification = Notification.objects.create(
-                        recipient = second_user,
-                        notificator = first_user,
-                        time = datetime.datetime.now(),
-                        text = 'subscribed to your updates',
-                        about = 'Subscribe'
-                        )
-            if first_user.profile.is_closed:
-                admit = Admittance.objects.create(for_user = second_user, on_page = first_user)
-            context = {'first_name' : second_user.first_name, 'last_name' : second_user.last_name}
-            return JsonResponse(context)
-
-@login_required
-def ajax_simple_unsubscribe(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        first_user = request.user
-        second_user = get_object_or_404(User, id = user_id)
-        subscrib = Subscrib.objects.filter(
-                    who = first_user,
-                    to = second_user,
-                    )
-        subscrib.delete()
-        context = {'first_name' : second_user.first_name, 'last_name' : second_user.last_name}
-        return JsonResponse(context)
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
+    if profile.has_unread_notif():
+        notif = True
+    else:
+        notif = False
+    i = 0
+    for d in profile.dialogues.all():
+        if d.has_unread_messages(request.user):
+            i = i+1
+    if i >0:
+        unread = True
+    else:
+        unread = False
+    return render(request, 'root/liked.html', {'like' : like, 'profile' : profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread})
 
 @login_required
 def avatarize(request):
@@ -922,6 +535,8 @@ def avatarize(request):
             profile = get_object_or_404(Profile, user = request.user)
             profile.avatar = form.cleaned_data['avatar']
             profile.save()
+            key = make_template_fragment_key('first', [request.user.username])
+            cache.delete(key)
             messages.success(request, 'Your avatar was updated!', extra_tags='alert alert-success alert-dismissible fade-show')
             return redirect ('wall', user_id)
         else:
@@ -938,115 +553,21 @@ def notifications(request):
     user = request.user
     profile = get_object_or_404(Profile, user = user)
     notification = Notification.objects.filter(recipient = user)
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    my_subscribs = Subscrib.objects.filter(who = request.user)
     for n in notification:
         if n.is_older_than_day() and n.status == 'Read':
             n.delete()
+    for n in notification:
+        if n.about != 'Subscribe' and n.content_object == None:
+            n.delete()
     notification = Notification.objects.filter(recipient = user)
-    return render(request, 'root/notifications.html', {'notification' : notification, 'profile' : profile})
-
-@login_required
-def ajax_notif_update(request):
-    if request.method == 'POST' and request.is_ajax:
-        user = request.user
-        notifications = Notification.objects.filter(recipient = user)
-        for notification in notifications:
-            notification.status = 'Read'
-            notification.save()
-        return HttpResponse('Done')
-
-@login_required
-def ajax_comment(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        post = get_object_or_404(Post, id = request.POST.get('id'))
-        comment = Comment.objects.create(
-                    commentator = request.user,
-                    text = request.POST.get('comment-text'),
-                    com_date = datetime.datetime.now(),
-                    post = post)
-        post.comments_quanity = post.comments_quanity + 1
-        post.save()
-        notification = Notification.objects.create(
-                        recipient = post.author,
-                        notificator = request.user,
-                        time = datetime.datetime.now(),
-                        text = 'commented your post',
-                        about = 'PostComment',
-                        content_object = post
-                        )
-        context = {'num' : post.comments_quanity, 'id' : post.id, 'text' : comment.text,
-                    'f_n': comment.commentator.first_name, 'l_n': comment.commentator.last_name}
-        return JsonResponse(context)
-
-@login_required
-def ajax_comment_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        post = get_object_or_404(Post, id = request.POST.get('id'))
-        comment = Comment.objects.create(
-                    commentator = request.user,
-                    text = request.POST.get('comment-text'),
-                    com_date = datetime.datetime.now(),
-                    post = post)
-        post.comments_quanity = post.comments_quanity + 1
-        post.save()
-        notification = Notification.objects.create(
-                        recipient = post.author,
-                        notificator = request.user,
-                        time = datetime.datetime.now(),
-                        text = 'commented your post',
-                        about = 'PostComment',
-                        content_object = post
-                        )
-        context = {'num' : post.comments_quanity, 'id' : post.id, 'text' : comment.text,
-                    'f_n': comment.commentator.first_name, 'l_n': comment.commentator.last_name}
-        return JsonResponse(context)
-
-
-@login_required
-def ajax_comment_comment(request, user_id):
-    if request.method == 'POST' and request.is_ajax:
-        elder_comment = get_object_or_404(Comment, id = request.POST.get('id2'))
-        post = elder_comment.post
-        comment = Comment.objects.create(
-                    commentator = request.user,
-                    text = request.POST.get('com_com-text'),
-                    com_date = datetime.datetime.now(),
-                    post = post,
-                    answer_to = elder_comment)
-        post.comments_quanity = post.comments_quanity + 1
-        post.save()
-        notification = Notification.objects.create(
-                        recipient = elder_comment.commentator,
-                        notificator = request.user,
-                        time = datetime.datetime.now(),
-                        text = 'answered your comment',
-                        about = 'CommentComment',
-                        content_object = elder_comment
-                        )
-        context = {'num' : post.comments_quanity, 'text' : comment.text, 'f_n': comment.commentator.first_name, 'l_n': comment.commentator.last_name,
-                        'who' : elder_comment.commentator.first_name, 'man_id' : elder_comment.commentator.id, 'com_id': elder_comment.id}
-        return JsonResponse(context)
-
-@login_required
-def ajax_comment_comment_from_news(request):
-    if request.method == 'POST' and request.is_ajax:
-        elder_comment = get_object_or_404(Comment, id = request.POST.get('id2'))
-        post = elder_comment.post
-        comment = Comment.objects.create(
-                    commentator = request.user,
-                    text = request.POST.get('com_com-text'),
-                    com_date = datetime.datetime.now(),
-                    post = post,
-                    answer_to = elder_comment)
-        post.comments_quanity = post.comments_quanity + 1
-        post.save()
-        notification = Notification.objects.create(
-                        recipient = elder_comment.commentator,
-                        notificator = request.user,
-                        time = datetime.datetime.now(),
-                        text = 'answered your comment',
-                        about = 'CommentComment',
-                        content_object = elder_comment
-                        )
-        context = {'num' : post.comments_quanity, 'text' : comment.text, 'f_n': comment.commentator.first_name, 'l_n': comment.commentator.last_name,
-                        'who' : elder_comment.commentator.first_name, 'man_id' : elder_comment.commentator.id, 'com_id': elder_comment.id}
-        return JsonResponse(context)
+    i = 0
+    for d in profile.dialogues.all():
+        if d.has_unread_messages(request.user):
+            i = i+1
+    if i >0:
+        unread = True
+    else:
+        unread = False
+    return render(request, 'root/notifications.html', {'notification' : notification, 'profile' : profile, 'my_subscribs':my_subscribs, 'subscrib_onme':subscrib_onme, 'unread':unread})
