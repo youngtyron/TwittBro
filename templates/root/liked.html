@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
   {% load static %}
+  {% load cache %}
 
   {% block custom_css %}
     <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
@@ -12,27 +13,37 @@
 
   <div class="container">
 
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
+
     <div class="row">
-      <div class="col-1.5">
-        <h>Profile</h>
+      {% cache 300 first request.user.username %}
+
+      <div class="first-column">
         <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
-        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
         {% if profile.status %}
           <p>{{profile.status}}</p>
         {% endif %}
-        {% if profile.user.id != request.user.id %}
-          <div class="subs-button">
-            {% if you_subscribed %}
-              <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
+
+
+            {% if notif == True %}
+              <p id= 'notif' name ='True'></p>
             {% else %}
-              <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
+              <p id= 'notif' name = 'False'></p>
             {% endif %}
-          </div>
-        {% else %}
-            <a href="{% url 'avatarize' %}">Add avatar?</a>
-        {% endif %}
+
       </div>
-      <div class="col">
+      {% endcache %}
+
+      <div class="second-column">
+
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
         <div>
 
         <ul class="list-group notif-column">
@@ -50,7 +61,20 @@
                 {% else %}
 
                     <p><img class='round-im-50' src="{{ like.content_object.author.profile.ultra_avatar_url }}">    {{like.content_object.author.first_name}} {{like.content_object.author.last_name}}</p>
-                    <a href="{% url 'wall' like.content_object.author.id %}" class = 'post_detail'><p>{{like.content_object.text}}</p></a>
+                    <a href="{% url 'wall' like.content_object.author.id %}" class = 'post_detail'>
+                      {% if  like.content_object.text %}
+                        <p>{{like.content_object.text}}</p>
+                      {% endif %}
+                      </a>
+                      {% if  like.content_object.image_box %}
+                        <p>
+                           {% for image in like.content_object.image_box %}
+                               <img  src="{{image.image_ultra.url}}" class ='mini-images' name = '{{image.image.url}}'>
+                           {% endfor %}
+                        </p>
+                      {% endif %}
+                      <p>{{like.content_object.pub_date}}</p>
+
 
                 {% endif %}
               </li>
@@ -60,9 +84,38 @@
         </div>
 
       </div>
-      <div class="col-2">
-        <h>Third column</h>
+      {% cache 300 third request.user.username %}
+      <div class="third-column">
+        <div class="btn-group" role="group" aria-label="First group">
+          <button type="button" class="btn btn-outline-info my_subs">Following</button>
+          <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
+        </div>
+        <ul class="list-group">
+          <div class="mysubs-group">
+          {% for subscrib in my_subscribs %}
+            <a href="{% url 'wall' subscrib.to.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
+        <ul class="list-group">
+          <div class="subs_onme_group">
+          {% for subscrib in subscrib_onme %}
+            <a href="{% url 'wall' subscrib.who.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.who.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.who.first_name}} {{subscrib.who.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
       </div>
+      {% endcache %}
     </div>
 
   </div>
@@ -74,5 +127,7 @@
 
 
     <script src = "{% static 'js/myscripts.js' %}"></script>
+    <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
 
   {% endblock %}

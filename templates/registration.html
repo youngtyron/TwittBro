@@ -24,32 +24,26 @@
     </div>
 
     <div class="row">
-      <div class="col-1.5">
-          <h>First column</h>
-      </div>
+
       <div class="col">
-
-        <p>Already have an account?<a href = "{% url 'login' %}">Login here!</a></p>
-        <form action="" method="post">
-            {% csrf_token %}
-            {% for field in form %}
-            <div class="form-group">
-              {{ form.non_field_errors }}
-              {{ field.errors }}
-              {{ field.label_tag }}
-              {{ field }}
-            </div>
-            <div class="form-group">
-            {% endfor %}
-            <input type='submit' value = 'submit' class ='btn btn-dark'>
-        </form>
-
+        <div class="square_box_div">
+          <p>Already have an account?<a href = "{% url 'login' %}">Login here!</a></p>
+          <form action="" method="post">
+              {% csrf_token %}
+              {% for field in form %}
+              <div class="form-group">
+                {{ form.non_field_errors }}
+                {{ field.errors }}
+                {{ field.label_tag }}
+                {{ field }}
+              </div>
+              <div class="form-group">
+              {% endfor %}
+              <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
+          </form>
       </div>
-      <div class="col-2">
-        <h>Third column</h>
       </div>
     </div>
-
   </div>
 
 

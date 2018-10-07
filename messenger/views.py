@@ -8,6 +8,35 @@ from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from profiles.models import Profile, Subscrib
 
+@login_required
+def ajax_update_chat(request, chat_id):
+    if request.method == 'POST' and request.is_ajax:
+        dict_k = request.POST.keys()
+        last_message_id = int((list(dict_k))[0])
+        chat = get_object_or_404(Chat, id = chat_id)
+        last_message = get_object_or_404(Message, id = last_message_id)
+        new_messages = Message.objects.filter(chat = chat).filter(pub_date__gt = last_message.pub_date)
+        if new_messages.exists():
+            context = {}
+            i = 0
+            for message in new_messages:
+                message_context = {'f_n':message.writer.first_name, 'l_n':message.writer.last_name, 'date':message.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'wr_id':message.writer.id, 'id':message.id}
+                if message.text:
+                    message_context.update({'text':message.text})
+                if message.is_grey(request.user):
+                    message_context.update({'grey':True})
+                if message.image_box():
+                    imagelist = ''
+                    for im in message.image_box():
+                        imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px' class ='mini-images' name = '"+im.image.url+"'>" + " "
+                    message_context.update({'images':imagelist})
+                context.update({i:message_context})
+                i = i+1
+            return JsonResponse(context)
+        else:
+            context= {'none':True}
+            return JsonResponse(context)
+
 
 @login_required
 def chat_list(request):
@@ -19,17 +48,7 @@ def chat_list(request):
         notif = False
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     my_subscribs = Subscrib.objects.filter(who = request.user)
-    i = 0
-    for ch in chat:
-        if ch.is_not_group_chat:
-            ch.companion = ch.companion(request.user)
-        if ch.user_didnt_read(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
-    return render(request, 'messenger/chat_list.html', {'chat' : chat, 'unread' : unread, 'profile': profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
+    return render(request, 'messenger/chat_list.html', {'chat' : chat, 'profile': profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
 
 @login_required
 def ajax_scroll_messages(request, chat_id):
@@ -44,7 +63,7 @@ def ajax_scroll_messages(request, chat_id):
         i = 0
         for message in messages:
             message_context = {}
-            message_context.update({'f_n':message.writer.first_name, 'l_n':message.writer.last_name, 'date':message.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'wr_id':message.writer.id})
+            message_context.update({'f_n':message.writer.first_name, 'l_n':message.writer.last_name, 'date':message.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'wr_id':message.writer.id, 'id':message.id})
             if message.text:
                 message_context.update({'text':message.text})
             if message.is_grey(request.user):
@@ -52,7 +71,7 @@ def ajax_scroll_messages(request, chat_id):
             if message.image_box():
                 imagelist = ''
                 for im in message.image_box():
-                    imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
+                    imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px' class ='mini-images' name = '"+im.image.url+"'>" + " "
                 message_context.update({'images':imagelist})
             context.update({i:message_context})
             i = i + 1
@@ -77,15 +96,7 @@ def chat(request, chat_id):
         form = MessageForm()
         form_im = ImageMessageForm()
         messages = Message.objects.filter(chat = chat)[:10][::-1]
-        i = 0
-        for d in profile.dialogues.all():
-            if d.has_unread_messages(request.user):
-                i = i+1
-        if i >0:
-            unread = True
-        else:
-            unread = False
-        return render (request, 'messenger/chat.html', {'chat':chat, 'messages' : messages, 'unread':unread, 'form' : form, 'form_im':form_im, 'notif': notif, 'profile':profile, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
+        return render (request, 'messenger/chat.html', {'chat':chat, 'messages' : messages,'form' : form, 'form_im':form_im, 'notif': notif, 'profile':profile, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
     else:
         return HttpResponseRedirect(request.META.get('HTTP_REFERER','/'))
 
@@ -100,15 +111,7 @@ def create_chat(request):
         notif = False
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     my_subscribs = Subscrib.objects.filter(who = request.user)
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
-    return render (request, 'messenger/create_chat.html', {'subscribs': subscribs, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread})
+    return render (request, 'messenger/create_chat.html', {'subscribs': subscribs, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
 
 @login_required
 def ajax_message(request, chat_id):
@@ -139,9 +142,9 @@ def ajax_message(request, chat_id):
                         image = image
                         )
                     imagelist = imagelist + "<a href='" + image.image.url + "'><img src = '" + image.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
-                context = {'text':message.text, 'f_name' : message.writer.first_name, 'l_name': message.writer.last_name, 'images': imagelist}
+                context = {'text':message.text, 'f_name' : message.writer.first_name, 'l_name': message.writer.last_name, 'images': imagelist, 'id':message.id, 'wr_id':message.writer.id}
             else:
-                context = {'text':message.text, 'f_name' : message.writer.first_name, 'l_name': message.writer.last_name}
+                context = {'text':message.text, 'f_name' : message.writer.first_name, 'l_name': message.writer.last_name, 'id':message.id, 'wr_id':message.writer.id}
             return JsonResponse(context)
         else:
             if images:
@@ -161,7 +164,7 @@ def ajax_message(request, chat_id):
                         image = image
                         )
                     imagelist = imagelist + "<a href='" + image.image.url + "'><img src = '" + image.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
-                context = {'f_name' : message.writer.first_name, 'l_name': message.writer.last_name, 'images': imagelist}
+                context = {'f_name' : message.writer.first_name, 'l_name': message.writer.last_name, 'images': imagelist, 'id':message.id, 'wr_id':message.writer.id}
                 return JsonResponse(context)
 
 
@@ -245,3 +248,27 @@ def ajax_make_chat(request):
                         else:
                             context = {'chat_id' : ch.id}
                             return JsonResponse(context)
+
+@login_required
+def ajax_change_chat_name(request, chat_id):
+    if request.method == 'POST' and request.is_ajax:
+        name = request.POST['name']
+        if not bool(name and name.strip()):
+            context = {'empty':True}
+            return JsonResponse(context)
+        else:
+            chat = get_object_or_404(Chat, id = chat_id)
+            chat.name = name
+            chat.save()
+            return JsonResponse({'name':chat.name})
+
+@login_required
+def ajax_change_chat_avatar(request, chat_id):
+    if request.method == 'POST' and request.is_ajax:
+        print(request.POST)
+        avatar = request.FILES.get('avatar')
+        chat = get_object_or_404(Chat, id = chat_id)
+        chat.pict = avatar
+        chat.save()
+        avatar_link = chat.chat_small_pict_url()
+        return JsonResponse({'avatar':avatar_link})

@@ -4,6 +4,21 @@ from django.contrib.auth.models import User
 from .models import Profile
 
 
+class ChangeEmailForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['email']
+        widgets = {
+            'email': forms.TextInput(attrs = {'class':'form-control'}),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        qs = User.objects.filter(email = email)
+        if qs.exists():
+            raise ValidationError('User with this email already exists')
+        return email
+
 class RegistrationForm(forms.Form):
     username = forms.CharField(
                 label = 'Username',
@@ -56,15 +71,6 @@ class RegistrationForm(forms.Form):
             if p1 != p2:
                 raise ValidationError('Invalid password')
 
-class ProfileForm(forms.ModelForm):
-    class Meta:
-        model = Profile
-        fields = ['gender', 'summary']
-        widgets = {
-                'sex' : forms.Select(choices = 'gender_choices'),
-                'summary' : forms.Textarea(attrs = {'class' : 'form-control', 'rows':3, 'cols':2}),
-                # 'birth_date' : forms.DateInput(),
-        }
 
 class AvatarForm(forms.ModelForm):
     class Meta:
@@ -81,18 +87,3 @@ class StatusForm(forms.ModelForm):
         widgets = {
                 'status' : forms.TextInput(attrs = {'class':'form-control'})
          }
-
-class ChangeEmailForm(forms.Form):
-
-    email = forms.EmailField(
-                label = 'Email',
-                max_length = 100,
-                widget = forms.TextInput(attrs = {'class':'form-control'})
-                )
-
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        qs = User.objects.filter(email = email)
-        if qs.exists():
-            raise ValidationError('User with this email already exists')
-        return email

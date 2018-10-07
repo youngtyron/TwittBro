@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
   {% load static %}
+  {% load cache %}
 
   {% block custom_css %}
     <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
@@ -11,48 +12,146 @@
 
 
   <div class="container">
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
 
     <div class="row">
-      <div class="col-1.5">
-        <!-- <h>Profile</h>
+      {% cache 300 first request.user.username %}
+
+      <div class="first-column">
         <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
-        <img class='round-im' src="{{ profile.avatar_small.url }}">
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
         {% if profile.status %}
           <p>{{profile.status}}</p>
         {% endif %}
-        {% if profile.user.id != request.user.id %}
-          <div class="subs-button">
-            {% if you_subscribed %}
-              <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
+
+
+            {% if notif == True %}
+              <p id= 'notif' name ='True'></p>
             {% else %}
-              <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
+              <p id= 'notif' name = 'False'></p>
             {% endif %}
-          </div>
-        {% else %}
-            <a href="{% url 'avatarize' %}">Add avatar?</a>
-        {% endif %} -->
+
       </div>
-      <div class="col">
+      {% endcache %}
+      <div class="second-column">
+
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
+
+
         <div>
 
-        <ul class="list-group notif-column">
+        <ul class="list-group result-column">
            {% for result in results %}
-              <li class="list-group-item">
+              <li class="list-group-item posts" name = '{{result.id}}'>
 
-                <p>{{result.author.username}}</p>
-                <p>{{result.text}}</p>
-                <p>{{result.pub_date}}</p>
+                <a href="{% url 'wall' result.author.id %}"><p><img src = "{{result.author.profile.ultra_avatar_url}}" class ='round-im-50'>{{result.author.first_name}} {{result.author.last_name}}</p></a>
+
+                {% if result.author == request.user %}
+                  <i class="fas fa-times" style ="position: absolute; right: 5%; left: 95%;" name ='delete-from-results'></i>
+                {% endif %}
+
+                <a href="{% url 'post_detail' result.id %}">
+                  <p class = 'post-text'>{{result.text}}</p>
+                  <p class = 'post-date'>{{result.pub_date}}</p>
+                </a>
+
+                {% if result.image_box %}
+                <p>
+                    {% for image in result.image_box %}
+                      <img  src="{{image.image_ultra.url}}" class ='mini-images' name = '{{image.image.url}}'>
+                    {% endfor %}
+                </p>
+                {% endif %}
+
+                {% if request.user in result.who_liked %}
+                  <i class="fas fa-heart" name = 'liking-from-results' id= '{{result.id}}' style ='color:red';>{{result.likes_quanity}}</i>
+                {% else %}
+                  <i class="fas fa-heart" name = 'liking-from-results' id= '{{result.id}}'>{{result.likes_quanity}}</i>
+                {% endif %}
+
+                {% if result.author != request.user %}
+                  <i class="fas fa-external-link-square-alt" name = 'reposting-from-results'>{{result.reposts_quanity}}</i>
+                {% else %}
+                    <i class="fas fa-external-link-square-alt" name ='my-post-repost'>{{result.reposts_quanity}}</i>
+                {% endif %}
+
+                <i class="fas fa-comment">{{result.comments_quanity}}</i>
+
+                {% if result.all_comments %}
+                    <p class ='show-comments' style ='color:rgb(0, 123, 255);'>Show all comments</p>
+                {% else %}
+                    <p class ='show-comments' style ='color:rgb(0, 123, 255); display: none;'>Show all comments</p>
+                {% endif %}
+
+
+                <ul class="list-group  com-column">
+                  {% for comment in result.all_comments %}
+                      <li class="list-group-item one-comment-results" name ='{{comment.id}}'>
+                        <a href="{% url 'wall' comment.commentator.id %}"><p class ='commentator-name'>{{comment.commentator.first_name}} {{comment.commentator.last_name}}</p></a>
+                        {% if comment.is_to_comment %}
+                          <p><a href="{% url 'wall' comment.answer_to.commentator.id %}">{{comment.answer_to.commentator.first_name}}</a>, {{comment.text}}</p>
+                        {% else %}
+                          <p>{{comment.text}}</p>
+                        {% endif %}
+                          <p>{{comment.com_date}}</p>
+                      </li>
+                  {% endfor %}
+                </ul>
+
+                    <form action="" method="post" class= 'comment-sent-from-results' name = 'empty'>
+                      <div class="hidden-comment-form"  style = 'display: none;'>
+                        {% csrf_token %}
+                        {{ form_com.as_p }}
+                        <input type='submit' value = 'Submit' class ='btn btn-dark cust-button add-comment-results'>
+                      </div>
+                    </form>
 
               </li>
            {% endfor %}
+           <p class='page-number' name=1></p>
         </ul>
 
         </div>
 
       </div>
-      <div class="col-2">
-        <h>Third column</h>
+      {% cache 300 third request.user.username %}
+      <div class="third-column">
+        <div class="btn-group" role="group" aria-label="First group">
+          <button type="button" class="btn btn-outline-info my_subs">Following</button>
+          <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
+        </div>
+        <ul class="list-group">
+          <div class="mysubs-group">
+          {% for subscrib in my_subscribs %}
+            <a href="{% url 'wall' subscrib.to.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
+        <ul class="list-group">
+          <div class="subs_onme_group">
+          {% for subscrib in subscrib_onme %}
+            <a href="{% url 'wall' subscrib.who.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.who.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.who.first_name}} {{subscrib.who.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
       </div>
+      {% endcache %}
     </div>
 
   </div>
@@ -64,6 +163,9 @@
 
     <script src="http://malsup.github.com/jquery.form.js"></script>
     <script src = "{% static 'js/ajax.js' %}"></script>
+    <script src = "{% static 'js/ajax-scrolling-results-posts.js' %}"></script>
     <script src = "{% static 'js/myscripts.js' %}"></script>
+    <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
 
   {% endblock %}

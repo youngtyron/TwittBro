@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+  {% load static %}
+  {% load cache %}
+
+  {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
+  {% endblock %}
+
+
+  {% block content %}
+
+
+  <div class="container">
+
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
+
+    <div class="row">
+      {% cache 300 first request.user.username %}
+
+      <div class="first-column">
+        <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}'>
+        {% if profile.status %}
+          <p>{{profile.status}}</p>
+        {% endif %}
+
+
+            {% if notif == True %}
+              <p id= 'notif' name ='True'></p>
+            {% else %}
+              <p id= 'notif' name = 'False'></p>
+            {% endif %}
+
+      </div>
+      {% endcache %}
+
+      <div class="second-column">
+
+        <div class="post-square">
+
+            <div class="gallery-container">
+                <div class="gallery-window">
+                </div>
+            </div>
+
+
+          <div style="marigin-top:15px; margin-left:10px;">
+
+             <a href="{% url 'wall' post.author.id %}">
+               <p><img src = "{{post.author.profile.ultra_avatar_url}}" class ='round-im-50'>{{post.author.first_name}} {{post.author.last_name}}</p>
+             </a>
+
+             {% if post.author == request.user %}
+               <i class="fas fa-times" style ="position: absolute; margin-left: 700px; margin-top:-40px;" name ='delete-from-detail'></i>
+             {% endif %}
+            {% if post.text %}
+              <p>{{post.text}}</p>
+            {% endif %}
+            {% if post.image_box %}
+            <p>
+              {% for image in post.image_box %}
+                <img class ='mini-images' src="{{image.image_small.url}}" name = '{{image.image.url}}'>
+              {% endfor %}
+            </p>
+            {% endif %}
+            <p>{{post.pub_date}}</p>
+
+            {% if red %}
+              <i class="fas fa-heart" name = 'liking-from-detail' style ='color:red';>{{post.likes_quanity}}</i>
+            {% else %}
+              <i class="fas fa-heart" name = 'liking-from-detail'>{{post.likes_quanity}}</i>
+            {% endif %}
+
+            {% if post.author != request.user %}
+              <i class="fas fa-external-link-square-alt" name = 'reposting-from-detail'>{{post.reposts_quanity}}</i>
+            {% else %}
+              <i class="fas fa-external-link-square-alt" name ='my-post-repost'>{{post.reposts_quanity}}</i>
+            {% endif %}
+
+        </div>
+
+
+
+        <ul class="list-group  comments">
+
+          {% if not post.all_comments %}
+
+            <p class = 'comments-title' style="margin-top:10px; font-weight:bold; color:purple;">Comments</p>
+
+            <p id = 'no-comments'>There are no comments</p>
+
+          {% else %}
+
+            <p class='comments-title' style="margin-top:10px; font-weight:bold; color:purple;">{{post.comments_quanity}} Comments</p>
+
+
+                {% for comment in post.all_comments %}
+
+                <li class="list-group-item one-comment-detail" name ='{{comment.id}}'>
+                  <a href="{% url 'wall' comment.commentator.id %}"><p class = 'commentator-name' name ='{{comment.commentator.id}}'>{{comment.commentator.first_name}} {{comment.commentator.last_name}}</p></a>
+                  {% if comment.is_to_comment %}
+                    <p><a href="{% url 'wall' comment.answer_to.commentator.id %}">{{comment.answer_to.commentator.first_name}}</a>, {{comment.text}}</p>
+                  {% else %}
+                    <p>{{comment.text}}</p>
+                  {% endif %}
+                    <p>{{comment.com_date}}</p>
+
+                </li>
+                {% endfor %}
+
+            {% endif %}
+          </ul>
+
+
+
+              <form action="" method="post" class= 'comment-sent-from-detail' name = 'empty'>
+                <div class="comment-form">
+                  {% csrf_token %}
+                  {{ form_com.as_p }}
+                  <input type='submit' value = 'Submit' class ='btn btn-dark cust-button add-comment-detail'>
+                </div>
+              </form>
+      </div>
+
+      </div>
+      {% cache 300 third request.user.username %}
+      <div class="third-column">
+        <div class="btn-group" role="group" aria-label="First group">
+          <button type="button" class="btn btn-outline-info my_subs">Following</button>
+          <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
+        </div>
+        <ul class="list-group">
+          <div class="mysubs-group">
+          {% for subscrib in my_subscribs %}
+            <a href="{% url 'wall' subscrib.to.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
+        <ul class="list-group">
+          <div class="subs_onme_group">
+          {% for subscrib in subscrib_onme %}
+            <a href="{% url 'wall' subscrib.who.id %}">
+              <li class="list-group-item" style="width: 400px;">
+                      <img class='round-im-50' src="{{subscrib.who.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                      <p class ='list-subscribs' style="float:right;">{{subscrib.who.first_name}} {{subscrib.who.last_name}}</p>
+              </li>
+            </a>
+          {% endfor %}
+          </div>
+        </ul>
+      </div>
+      {% endcache %}
+    </div>
+
+  </div>
+
+
+  {% endblock %}
+
+  {% block javascript %}
+
+  <script src="http://malsup.github.com/jquery.form.js"></script>
+  <script src = "{% static 'js/ajax.js' %}"></script>
+  <script src = "{% static 'js/myscripts.js' %}"></script>
+  <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
+
+  {% endblock %}

@@ -4,6 +4,7 @@
   {% load cache %}
 
   {% block custom_css %}
+    <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
   {% endblock %}
 
 
@@ -11,12 +12,9 @@
 
 
   <div class="container">
-
     {% if request.user.profile.red_envelope %}
       <p id='red-envelope'></p>
     {% endif %}
-
-
 
     <div class="row">
       {% cache 300 first request.user.username %}
@@ -46,41 +44,41 @@
 
 
 
-      <ul class = 'list-group'>
+        <div>
 
-          <form action="" method = 'post' class = 'edit-profile-form' enctype="multipart/form-data">
-            {% csrf_token %}
-            <li class = 'list-group-item email-li'>
-               <p class = 'email-flag'>Email: {{profile.user.email}}</p>
-               <p class = 'email-hidden-form'><label for="id_email">New email:</label> <input name="email" maxlength="100" class="form-control" id="id_email" type="text"></p>
-            </li>
-            <li class = 'list-group-item privacy-li'>
-              {% if profile.is_closed %}
-                <p class = 'open-or-close'>Open your profile for all users?
-                 <input type="checkbox" name="private" value='open-it' style = 'margin-top: 10px;'> </p>
-              {% else %}
-                <p class = 'open-or-close'>Make your profile private?
-                 <input type="checkbox" name="private" value='close-it' style = 'margin-top: 10px;'> </p>
-              {% endif %}
-             </li>
-             <li class = 'list-group-item avatar-li'>
-               <p class='avatar-setting'>Change avatar</p>
-                 <div class='hidden-avatar-form'>
 
-                     <div class="form-group">
-                        <label for="id_avatar">Avatar:</label>
-                          <input name="avatar" id="id_avatar" accept="image/*" type="file">
-                    </div>
-
-                     <p class ='avatar-deleting'>You can delete avatar</p>
-                   </div>
-              </li>
-              <input type='submit' value = 'Save' class ='btn btn-dark cust-button save-changes'>
+          <form class="input-name" action="{% url 'people' %}" method="get" style="margin-top:10px!important;">
+             <input class="form-control inp-name" type="search" placeholder="Input name" name="name" style="width:700px!important; margin-left: auto; margin-right: auto;">
           </form>
-      </ul>
 
-      <p style="margin-top: 14px;"><a href="{% url 'delete_user_confirm' %}">You can delete your profile</a></p>
 
+        <ul class="list-group people-column" style="margin-top:10px;">
+           {% for profile in people %}
+           <a href="{% url 'wall' profile.user.id %}" style="color: black; text-decoration: none;">
+              <li class="list-group-item" style="width:700px!important; margin-left: auto; margin-right: auto;">
+
+                  <p class='people_elem'>
+                    <img src = "{{profile.ultra_avatar_url}}" class ='round-im-50'>
+                    {{profile.user.first_name}} {{profile.user.last_name}}
+                    {% if profile.user in request.user.profile.my_following %}
+                      <span class="badge badge-success">You follow</span>
+                    {% endif %}
+                    {% if profile.user in request.user.profile.my_followers %}
+                      <span class="badge badge-danger">Follow you</span>
+                    {% endif %}
+                    {% if profile.user == request.user %}
+                      <span class="badge badge-primary">You</span>
+                    {% endif %}
+                    {{profile.rating}} followers
+                  </p>
+
+              </li>
+            </a>
+           {% endfor %}
+           <p class='page-number' name=1></p>
+        </ul>
+
+        </div>
 
       </div>
       {% cache 300 third request.user.username %}
@@ -121,14 +119,14 @@
 
 
   {% endblock %}
+
   {% block javascript %}
 
-
-    <script src = "{% static 'js/myscripts.js' %}"></script>
-    <script src = "{% static 'js/ajax.js' %}"></script>
     <script src="http://malsup.github.com/jquery.form.js"></script>
+    <script src = "{% static 'js/ajax.js' %}"></script>
+    <script src = "{% static 'js/ajax-scrolling-people.js' %}"></script>
+    <script src = "{% static 'js/myscripts.js' %}"></script>
     <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
-
 
 
   {% endblock %}

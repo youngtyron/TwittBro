@@ -11,14 +11,20 @@
 
   <div class="container">
 
-    <div class="row">
+    <div class="row text-center">
 
+    
       <div class="col">
         <div>
 
         <div class="square_box_div">
 
-              <form action="" method="post" enctype="multipart/form-data">
+          <ul class = 'list-group'>
+            <li class = 'list-group-item'>
+              <img id= 'avatar-exhibit' src= '{{profile.avatar_opening_link}}' style="height: 200px; width: 200px;" / >
+            </li>
+            <li class = 'list-group-item'>
+              <form action="" method="post" enctype="multipart/form-data"  class = 'avatarizing-form'>
                   {% csrf_token %}
                   {% for field in form %}
                   <div class="form-group">
@@ -31,14 +37,16 @@
                   <p>
 
                   <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
-                  {% if first_visit %}
-                      <a href="{% url 'mywall' %}" style="margin-left:20px;">Pass this step</a>
-                  {% endif %}
 
                   </p>
               </form>
 
+            </li>
 
+            <a id='step-switch' href="{% url 'mywall' %}" style="margin-left:20px;">Pass this step</a>
+
+
+          </ul>
 
           </div>
 
@@ -54,6 +62,11 @@
   {% endblock %}
 
   {% block javascript %}
+
+
+    <script src = "{% static 'js/ajax.js' %}"></script>
+    <script src="http://malsup.github.com/jquery.form.js"></script>
+
 
 
   {% endblock %}

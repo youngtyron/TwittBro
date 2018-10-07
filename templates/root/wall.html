@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
   {% load static %}
+  {% load cache %}
 
   {% block custom_css %}
   <link rel='stylesheet' type='text/css' href="{% static 'css/customated.css' %}">
@@ -13,39 +14,32 @@
 
   <div class="container">
 
-    <div class="row">
-
-      {% if messages %}
-      {% for message in messages %}
-      <div {% if message.tags %} class="{{ message.tags }}"{% endif %}>
-        {{message}}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      {% endfor %}
-      {% endif %}
-
-    </div>
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
 
     <div class="row three-columns">
-      <div class="col-2 first-column">
+
+
+      <div class="first-column">
           <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
 
-              <a href=""><img class='round-im-100' src="{{ profile.small_avatar_url }}" style="vertical-align: middle;"></a>
+              <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
 
 
 
           {% if profile.user.id != request.user.id %}
             <div class="subs-button">
+              {% if profile.status %}
+                <p class ='str-status'>{{profile.status}}</p>
+              {% endif %}
               {% if you_subscribed %}
                 <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
               {% else %}
                 <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
               {% endif %}
             </div>
-            <a href="{% url 'messenger:start_chat' profile.user.id %}">Start chat</a>
-            <p>_______________</p>
+
             <p id= 'to-write-message' style ='color:rgb(0, 123, 255);'>Write a message</p>
 
 
@@ -62,21 +56,24 @@
                         <p><label for="id_image"></label>
                         <input name="image" accept="image/*" multiple="" id="id_image" type="file" style = 'display: none;'></p>
 
-                        <input value="Submit" class="btn btn-dark" type="submit">
+                        <input value="Submit" class="btn btn-dark cust-button" type="submit">
                         <i class="far fa-file-image" id= 'show-image-form'></i>
 
                       </div>
 
                     </form>
 
-          {% if fol %}
-            <p>This user subscribbed on you</p>
-            <p class = 'access-confirm' style ='color:rgb(0, 123, 255);'>Do you want to give him access to your page?</p>
-          {% endif %}
-          {% if black %}
-            <p class = 'black-book' style ='color:rgb(0, 123, 255);'>Do you want to forbid an access to your page for this user?</p>
-          {% endif %}
+                {% if request.user.profile.is_closed %}
 
+                  {% if fol %}
+                    <p>This user subscribbed on you</p>
+                    <p class = 'access-confirm' style ='color:rgb(0, 123, 255);'>Do you want to give him access to your page?</p>
+                  {% endif %}
+                  {% if black %}
+                    <p class = 'black-book' style ='color:rgb(0, 123, 255);'>Do you want to forbid an access to your page for this user?</p>
+                  {% endif %}
+
+               {% endif %}
 
           {% else %}
           {% if notif == True %}
@@ -85,12 +82,6 @@
             <p id= 'notif' name = 'False'></p>
           {% endif %}
 
-
-          {% if unread == True %}
-            <p id= 'sign' name = 'True'></p>
-          {% else %}
-            <p id= 'sign' name ='False'></p>
-          {% endif %}
               <div class="status">
                 {% if profile.status %}
                   <p class ='str-status'>{{profile.status}}</p>
@@ -100,14 +91,48 @@
                       <form action="" method="post" class= 'status-enter'>
                           {% csrf_token %}
                           {{ form_st.as_p }}
-                          <input type='submit' value = 'submit' class ='btn btn-dark'>
+                          <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
                       </form>
                 </div>
               </div>
-              <p><a href="{% url 'avatarize' %}">Add avatar?</a></p>
           {% endif %}
       </div>
-      <div class="col second-column">
+
+
+      <div class="second-column">
+
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
+
+        {% if profile.user.id == request.user.id %}
+
+          <form action="" method="post" id= 'posting'>
+
+            <div class="hidden-post-form">
+              {% csrf_token %}
+
+              <div class="form-group">
+                {% csrf_token %}
+
+                <label for="id_text" style="font-weight:bold; color:purple;">Add your post</label>
+                <textarea name="text" id="id_text" cols="2" class="form-control" maxlength="1000" rows="3"></textarea>
+                <i class="far fa-image fa-2x add-picture" style="color: purple;"></i>
+              </div>
+
+              <div class="form-group">
+                <input type="file" name="image" accept="image/*" id="id_image_post" multiple="" style="display:none;">
+              </div>
+
+
+              <input type='submit' value = 'Submit' class ='btn btn-dark cust-button' style="display:none;">
+            </div>
+
+          </form>
+
+        {% endif %}
 
         {% if taboo %}
           <p class = 'text-center' style = 'margin-top: 20px'>You can't access to materials. Ask for it, subscribing on this user.</p>
@@ -126,23 +151,19 @@
                         {% endif %}
                         {% if post.is_repost == False %}
 
+                          <a class='postlink' href="{% url 'post_detail' post.id %}">
                             {% if post.text %}
                             <p class = 'post-text'>{{post.text}}</p>
                             {% endif %}
                             <p class = 'post-date'>{{post.pub_date}}</p>
+                          </a>
 
                             {% if post.image_box %}
-                              <table>
-                                <tr>
-
+                              <p>
                                   {% for image in post.image_box %}
-                                    <td>
-                                      <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
-                                    </td>
+                                    <img  src="{{image.image_ultra.url}}" class ='mini-images' name = '{{image.image.url}}'>
                                   {% endfor %}
-
-                                </tr>
-                              </table>
+                              </p>
                             {% endif %}
                             {% if request.user in post.who_liked %}
                               <i class="fas fa-heart liked" name = 'liking' id= '{{post.id}}'  style ='color:red;'>{{post.likes_quanity}}</i>
@@ -151,33 +172,30 @@
                             {% endif %}
                         {% if post.author != request.user %}
                           <i class="fas fa-external-link-square-alt" name = 'reposting'>{{post.reposts_quanity}}</i>
+                        {% else %}
+                              <i class="fas fa-external-link-square-alt" name ='my-post-repost'>{{post.reposts_quanity}}</i>
                         {% endif %}
 
                         {% else %}
-                          <a href="{% url 'wall' post.repost.author.id %}">
+                          <a class='postlink' href="{% url 'wall' post.repost.author.id %}">
                             <p>
                               Author: {{post.repost.author.first_name}} {{post.repost.author.last_name}}
                           </p>
                           </a>
 
+                          <a href="{% url 'post_detail' post.repost.id %}">
                             {% if post.repost.text %}
                             <p class="post-text">{{post.repost.text}}</p>
                             {% endif %}
                             <p class = 'post-date'>{{post.pub_date}}</p>
-
+                          </a>
 
                           {% if post.repost.image_box %}
-                            <table>
-                              <tr>
-
+                            <p>
                                 {% for image in post.repost.image_box %}
-                                 <td>
-                                  <a href="{{image.image.url}}"><img  src="{{image.image_ultra.url}}"></a>
-                                 </td>
+                                  <img  src="{{image.image_ultra.url}}" class ='mini-images' name = '{{image.image.url}}'>
                                 {% endfor %}
-
-                              </tr>
-                            </table>
+                            </p>
                           {% endif %}
                           {% if request.user in post.who_liked %}
                             <i class="fas fa-heart liked" name = 'liking' id= '{{post.id}}'  style ='color:red';>{{post.likes_quanity}}</i>
@@ -187,7 +205,11 @@
                         {% if post.repost.author != request.user %}
                           {% if post.author != request.user  %}
                             <i class="fas fa-external-link-square-alt" name = 'reposting'>{{post.reposts_quanity}}</i>
+                          {% else %}
+                            <i class="fas fa-external-link-square-alt" name ='my-post-repost'>{{post.reposts_quanity}}</i>
                           {% endif %}
+                        {% else %}
+                            <i class="fas fa-external-link-square-alt" name ='my-post-repost'>{{post.reposts_quanity}}</i>
                         {% endif %}
                         {% endif %}
                         <i class="fas fa-comment" name = '{{post.id}}'>{{post.comments_quanity}}</i>
@@ -202,7 +224,7 @@
                           {% for comment in post.all_comments %}
 
                           <li class="list-group-item one-comment" name ='{{comment.id}}'>
-                            <p>{{comment.commentator.first_name}} {{comment.commentator.last_name}}</p>
+                            <a href="{% url 'wall' comment.commentator.id %}"><p class ='commentator-name'>{{comment.commentator.first_name}} {{comment.commentator.last_name}}</p></a>
                             {% if comment.is_to_comment %}
                               <p><a href="{% url 'wall' comment.answer_to.commentator.id %}">{{comment.answer_to.commentator.first_name}}</a>, {{comment.text}}</p>
                             {% else %}
@@ -217,15 +239,7 @@
                               <div class="hidden-comment-form"  style = 'display: none;'>
                                 {% csrf_token %}
                                 {{ form_com.as_p }}
-                                <input type='submit' value = 'submit' class ='btn btn-dark add-comment'>
-                              </div>
-                            </form>
-
-                            <form action="" method="post" class= 'com-com-sent' name = 'empty'>
-                              <div class="hidden-com-com-form"  style = 'display: none;'>
-                                {% csrf_token %}
-                                {{ form_c_c.as_p }}
-                                <input type='submit' value = 'submit' class ='btn btn-dark add-com-com'>
+                                <input type='submit' value = 'submit' class ='btn btn-dark cust-button add-comment'>
                               </div>
                             </form>
 
@@ -243,45 +257,11 @@
 
                 <div>
 
-                {% if profile.user.id == request.user.id %}
-
-                <p id = 'show-post-form' style = 'margin-left: 85%;'>
-                  Add post?<i class="fas fa-keyboard"></i>
-                </p>
-
-
-                  <form action="" method="post" id= 'posting'>
-
-                    <div class="hidden-post-form">
-                      <input type="hidden" name="csrfmiddlewaretoken" value="U8vw8LznBIhZrcCsZfGtynOj4CALpGH0C0SZqeISD6jVNt23iev5oGN11Dfx2CYg">
-
-                      <div class="form-group">
-                        {% csrf_token %}
-
-                        <label for="id_text">Text:</label>
-                        <textarea name="text" id="id_text" cols="2" class="form-control" maxlength="1000" rows="3"></textarea>
-                      </div>
-
-                      <div class="form-group">
-
-
-                        <label for="id_image">Image:</label>
-                        <input type="file" name="image" accept="image/*" id="id_image" multiple="">
-                      </div>
-
-
-                      <input type='submit' value = 'Submit' class ='btn btn-dark cust-button'>
-                    </div>
-
-                  </form>
-
-                {% endif %}
-
                 </div>
                 {% endif %}
 
       </div>
-      <div class="col-2 third-column">
+      <div class="third-column">
         <div class="btn-group" role="group" aria-label="First group">
           <button type="button" class="btn btn-outline-info my_subs">Following</button>
           <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
@@ -309,6 +289,7 @@
             </a>
           {% endfor %}
           </div>
+
         </ul>
       </div>
     </div>
@@ -316,14 +297,15 @@
   </div>
 
 
-  {% endblock %}
+{% endblock %}
 
-  {% block javascript %}
+{% block javascript %}
 
     <script src="http://malsup.github.com/jquery.form.js"></script>
     <script src = "{% static 'js/ajax.js' %}"></script>
     <script src = "{% static 'js/myscripts.js' %}"></script>
     <script src = "{% static 'js/ajax-scrolling-wall.js' %}"></script>
+    <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
 
 
-  {% endblock %}
+{% endblock %}

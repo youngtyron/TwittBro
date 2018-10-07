@@ -12,13 +12,16 @@
 
 
   <div class="container">
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
 
     <div class="row">
       {% cache 300 first request.user.username %}
 
       <div class="first-column">
         <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
-        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
         {% if profile.status %}
           <p>{{profile.status}}</p>
         {% endif %}
@@ -30,14 +33,15 @@
               <p id= 'notif' name = 'False'></p>
             {% endif %}
 
-            {% if unread == True %}
-              <p id= 'sign' name = 'True'></p>
-            {% else %}
-              <p id= 'sign' name ='False'></p>
-            {% endif %}
       </div>
       {% endcache %}
       <div class="second-column">
+
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
         <div>
 
           <h>Choice your companions</h>
@@ -117,5 +121,7 @@
   <script src="http://malsup.github.com/jquery.form.js"></script>
   <script src = "{% static 'js/ajax-messages.js' %}"></script>
   <script src = "{% static 'js/myscripts.js' %}"></script>
+  <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
 
   {% endblock %}

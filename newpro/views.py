@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from profiles.models import Profile, Subscrib, Notification, Admittance, Alert
 from posts.models import Post, Comment, ImagePost
-from profiles.forms import RegistrationForm, ProfileForm, AvatarForm, StatusForm, ChangeEmailForm
+from profiles.forms import RegistrationForm, AvatarForm, StatusForm, ChangeEmailForm
 import datetime
 from datetime import timezone
 from datetime import timedelta
@@ -35,6 +35,7 @@ from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.cache.utils import make_template_fragment_key
+# from django.urls import reverse
 
 class OnePostView(LoginRequiredMixin, DetailView):
     model = Post
@@ -81,14 +82,6 @@ class OnePostView(LoginRequiredMixin, DetailView):
             context['red'] =  True
         profile = get_object_or_404(Profile, user = self.request.user)
         context['profile'] = profile
-        i = 0
-        for d in profile.dialogues.all():
-            if d.has_unread_messages(self.request.user):
-                i = i+1
-        if i >0:
-            context['unread'] = True
-        else:
-            context['unread'] = False
         if profile.has_unread_notif():
             context['notif'] = True
         else:
@@ -135,15 +128,6 @@ class PeopleListView(LoginRequiredMixin, ListView):
         my_subscribs = Subscrib.objects.filter(who = self.request.user)
         context['subscrib_onme'] = subscrib_onme
         context['my_subscribs'] = my_subscribs
-        i = 0
-        for d in profile.dialogues.all():
-            if d.has_unread_messages(self.request.user):
-                i = i+1
-        if i >0:
-            unread = True
-        else:
-            unread = False
-        context['unread'] = unread
         return context
 
 @login_required
@@ -162,18 +146,10 @@ def search(request):
         notif = True
     else:
         notif = False
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     my_subscribs = Subscrib.objects.filter(who = request.user)
     form_com = CommentForm(prefix = 'comment')
-    context = {'results':results, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread, 'form_com':form_com}
+    context = {'results':results, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'form_com':form_com}
     return render(request, 'root/search_results.html', context)
 
 
@@ -193,21 +169,13 @@ def news(request):
         notif = True
     else:
         notif = False
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
     users = []
     for s in subscribs:
         user = s.to
         users.append(user)
     users.append(request.user)
     news_posts = Post.objects.filter(author__in = users)[:10]
-    context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif, 'unread' : unread,
+    context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif,
                 'form_com' : form_com, 'subscribs' : subscribs, 'subscrib_onme':subscrib_onme}
     return render (request, 'root/news.html', context)
 
@@ -229,21 +197,13 @@ def wall(request, user_id):
     subscrib_onme = Subscrib.objects.filter(to = user_id)
     form_com = CommentForm(prefix = 'comment')
     if user_id == request.user.id:
-        i = 0
-        for d in profile.dialogues.all():
-            if d.has_unread_messages(request.user):
-                i = i+1
-        if i >0:
-            unread = True
-        else:
-            unread = False
         form = PostForm()
         form_st = StatusForm(prefix = 'status')
         if profile.has_unread_notif():
             notif = True
         else:
             notif = False
-        context = {'post' : posts, 'form' : form, 'profile' : profile, 'subscrib' : subscrib, 'form_st' : form_st, 'unread' : unread,
+        context = {'post' : posts, 'form' : form, 'profile' : profile, 'subscrib' : subscrib, 'form_st' : form_st,
                     'notif': notif, 'form_com' : form_com, 'subscrib_onme':subscrib_onme, 'taboo' : taboo}
     else:
         if profile.is_follower(request.user):
@@ -349,46 +309,15 @@ class MyPasswordResetConfirmView(PasswordContextMixin, FormView):
 @login_required
 def edit_profile(request):
     profile = get_object_or_404(Profile, user = request.user)
-    if request.method == 'POST':
-        form_em = ChangeEmailForm(request.POST)
-        print(request.POST.get('email'))
-        if request.POST.get('email') == '':
-            if request.POST.get('private') == 'close-it':
-                profile.is_closed = True
-                profile.save()
-            elif request.POST.get('private') == 'open-it':
-                profile.is_closed = False
-                profile.save()
-        else:
-            if  form_em.is_valid():
-                profile.user.email = form_em.cleaned_data['email']
-                profile.user.save()
-            else:
-                context = {'profile' : profile, 'form_em':form_em}
-                return render(request, 'profiles/edit_profile.html', context)
-        if request.POST.get('private') == 'close-it':
-            profile.is_closed = True
-            profile.save()
-        elif request.POST.get('private') == 'open-it':
-            profile.is_closed = False
-            profile.save()
-    form_em = ChangeEmailForm()
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     my_subscribs = Subscrib.objects.filter(who = request.user)
     if profile.has_unread_notif():
         notif = True
     else:
         notif = False
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
-    context = {'profile' : profile, 'form_em':form_em, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'notif':notif, 'unread':unread}
+    context = {'profile' : profile, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'notif':notif}
     return render(request, 'profiles/edit_profile.html', context)
+
 
 def first_page(request):
     if request.user.is_authenticated:
@@ -424,25 +353,25 @@ def login_user(request):
                     alert = Alert.objects.filter(user = user)
                     alert.delete()
                     login(request, user)
-                    profile = Profile.objects.filter(user = request.user)
-                    if profile:
-                        return redirect('wall', user.id)
-                    else:
-                        return redirect('create_profile')
+                    user.profile.reassign()
+                    return redirect('wall', user.id)
                 else:
                     user = User.objects.filter(username = username)
                     if user.exists():
                         Alert.objects.create(user = user[0])
-                        messages.error(request, 'Wrong username or password', extra_tags='alert alert-success alert-dismissible fade-show')
+                        messages.error(request, 'Wrong username or password', extra_tags='alert alert-success alert-dismissible fade show')
             else:
                 alert = "Somebody tried to get your account with wrong password. We'll send you the mail to recet password"
                 context = {'alert' : alert}
                 return redirect ('password_reset')
+        else:
+            messages.error(request, 'This username not registrated', extra_tags='alert alert-success alert-dismissible fade show')
         return render(request, 'login.html')
     return render(request, 'login.html')
 
 @login_required
 def logout_user(request):
+    request.user.profile.disassign()
     logout(request)
     return redirect ('login')
 
@@ -457,8 +386,10 @@ def registration(request):
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
             user = User.objects.create_user(username = username, email = email, password = password, first_name = first_name, last_name = last_name)
-            messages.success(request, 'Thanks for registration', extra_tags='alert alert-success alert-dismissible fade-show')
-            return redirect('login')
+            Profile.objects.create(user = user, registrated = datetime.datetime.now())
+            login(request, user)
+            user.profile.reassign()
+            return redirect('avatarize')
         else:
             form = RegistrationForm()
             return render (request, 'registration.html', {'form' : form})
@@ -466,25 +397,12 @@ def registration(request):
         form = RegistrationForm()
         return render (request, 'registration.html', {'form' : form})
 
-
 @login_required
-def create_profile(request):
-    if request.method == 'POST':
-        form = ProfileForm(request.POST)
-        if form.is_valid():
-            new_profile = form.save(commit = False)
-            new_profile.user = request.user
-            new_profile.registrated = datetime.datetime.now()
-            new_profile.save()
-            profile_id = new_profile.user.id
-            messages.success(request, 'Your profile is created!', extra_tags='alert alert-success alert-dismissible fade-show')
-            return redirect ('avatarize')
-        else:
-            form = ProfileForm()
-            return render(request, 'profiles/create_profile.html', {'form':form})
-    else:
-        form = ProfileForm()
-        return render(request, 'profiles/create_profile.html', {'form':form})
+def avatarize(request):
+    form = AvatarForm()
+    profile = get_object_or_404(Profile, user = request.user)
+    context = {'form':form, 'profile':profile}
+    return render(request, 'profiles/avatarize.html', context)
 
 
 def change_password(request):
@@ -511,42 +429,8 @@ def liked_objects(request):
         notif = True
     else:
         notif = False
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
-    return render(request, 'root/liked.html', {'like' : like, 'profile' : profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs, 'unread':unread})
+    return render(request, 'root/liked.html', {'like' : like, 'profile' : profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
 
-@login_required
-def avatarize(request):
-    create_url = "http://localhost:8000/create_profile/"
-    if request.META['HTTP_REFERER'] == create_url:
-        context = {'first_visit':True}
-    else:
-        context = {}
-    if request.method == 'POST':
-        form = AvatarForm(request.POST, request.FILES)
-        if form.is_valid():
-            user_id = request.user.id
-            profile = get_object_or_404(Profile, user = request.user)
-            profile.avatar = form.cleaned_data['avatar']
-            profile.save()
-            key = make_template_fragment_key('first', [request.user.username])
-            cache.delete(key)
-            messages.success(request, 'Your avatar was updated!', extra_tags='alert alert-success alert-dismissible fade-show')
-            return redirect ('wall', user_id)
-        else:
-            form = AvatarForm()
-            context.update({'form' : form})
-            return render(request, 'profiles/avatarize.html', context)
-    else:
-        form = AvatarForm()
-        context.update({'form' : form})
-        return render(request, 'profiles/avatarize.html', context)
 
 @login_required
 def notifications(request):
@@ -562,12 +446,4 @@ def notifications(request):
         if n.about != 'Subscribe' and n.content_object == None:
             n.delete()
     notification = Notification.objects.filter(recipient = user)
-    i = 0
-    for d in profile.dialogues.all():
-        if d.has_unread_messages(request.user):
-            i = i+1
-    if i >0:
-        unread = True
-    else:
-        unread = False
-    return render(request, 'root/notifications.html', {'notification' : notification, 'profile' : profile, 'my_subscribs':my_subscribs, 'subscrib_onme':subscrib_onme, 'unread':unread})
+    return render(request, 'root/notifications.html', {'notification' : notification, 'profile' : profile, 'my_subscribs':my_subscribs, 'subscrib_onme':subscrib_onme})

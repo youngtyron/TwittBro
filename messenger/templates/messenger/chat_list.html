@@ -12,13 +12,16 @@
 
 
   <div class="container">
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
 
     <div class="row">
       {% cache 300 first request.user.username %}
 
       <div class="first-column">
         <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
-        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
         {% if profile.status %}
           <p>{{profile.status}}</p>
         {% endif %}
@@ -30,41 +33,45 @@
               <p id= 'notif' name = 'False'></p>
             {% endif %}
 
-            {% if unread == True %}
-              <p id= 'sign' name = 'True'></p>
-            {% else %}
-              <p id= 'sign' name ='False'></p>
-            {% endif %}
       </div>
       {% endcache %}
       <div class="second-column">
 
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
         <div>
 
-        <ul class="list-group">
+        <ul class="list-group chatlist">
            {% for chat in chat %}
-              <li class="list-group-item" >
+              <li class="list-group-item"  name = '{{chat.id}}'>
                   <a href="#" class = 'go-to-chat'>
                     <form action="{% url 'messenger:chat' chat.id %}" class="this_chat" method="POST">
                       {% csrf_token%}
                     <input type="hidden" name="var" value="val">
                     </form>
                   {% if chat.is_not_group_chat %}
-                    <p><img class='round-im-50' src="{{chat.companion.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{chat.companion.first_name}} {{chat.companion.last_name}}</p>
+                    {% for member in chat.members %}
+                      {% if member != request.user %}
+                        <p><img class='round-im-50' src="{{member.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{member.first_name}} {{member.last_name}}</p>
+                      {% endif %}
+                    {% endfor %}
                   {% else %}
                     <p><img class='round-im-50' src="{{chat.chat_small_pict_url}}" style="vertical-align: middle;">{{chat.name}}</p>
                   {% endif %}
                   {% if request.user in chat.facial_message.recieved and chat.facial_message.has_two_readers %}
                     {% if chat.facial_message.text %}
-                      <p><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
+                      <p class='facial'><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
                     {% else %}
-                      <p><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
+                      <p class='facial'><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
                     {% endif %}
                   {% else %}
                     {% if chat.facial_message.text %}
-                      <p style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
+                      <p class='facial' style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">{{chat.facial_message.text}}</p>
                     {% else %}
-                      <p style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
+                      <p class='facial' style ="background-color: rgb(247, 245, 245)";><img class='round-im-25' src="{{chat.facial_message.writer.profile.micro_avatar_url}}" style="vertical-align: middle;">Images</p>
                     {% endif %}
                   {% endif %}
                 </a>
@@ -124,6 +131,8 @@
   {% block javascript %}
 
     <script src = "{% static 'js/myscripts.js' %}"></script>
+    <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
 
 
   {% endblock %}

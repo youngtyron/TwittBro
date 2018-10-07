@@ -5,7 +5,7 @@ import datetime
 from PIL import Image
 from imagekit.models.fields import ImageSpecField
 from imagekit.processors import ResizeToFit, Adjust,ResizeToFill
-
+from django.shortcuts import get_object_or_404
 
 class Chat(models.Model):
     name = models.CharField(max_length=100, default = 'dialogue')
@@ -18,6 +18,9 @@ class Chat(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return "/messages/chat/%i/" % self.id
+ 
     def chat_small_pict_url(self):
         if self.pict and hasattr(self.pict, 'url'):
             return self.pict_small.url
@@ -42,7 +45,6 @@ class Chat(models.Model):
         else:
             return False
 
-
     def has_unread_messages(self, user):
         messages = self.messages.filter(is_read = False).exclude(who_read = user)
         if messages.exists():
@@ -65,6 +67,11 @@ class Chat(models.Model):
     def companion(self, user):
         companion = self.member.exclude(id = user.id)[0]
         return companion
+
+    def updated_messages(self, user):
+        sessionmessages = get_object_or_404(SessionMessages, user = user)
+        messages = self.messages.filter(is_read = False).exclude(who_read = user).filter(pub_date__gt = sessionmessages.time)
+        return messages
 
 
 class Message(models.Model):
@@ -100,9 +107,9 @@ class Message(models.Model):
             return False
         else:
             if self.chat.is_group_chat():
-                if user is self.author and self.has_two_readers():
+                if user is self.writer and self.has_two_readers():
                     return False
-                elif user in self.recieved():
+                elif user in self.recieved() and user != self.writer:
                     return False
                 else:
                     return True
@@ -117,3 +124,10 @@ class ImageMessage(models.Model):
 
     def __str__(self):
         return self.letter.writer.username
+
+class SessionMessages(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    time = models.DateTimeField()
+
+    def __str__(self):
+        return self.user.username

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
   {% load static %}
+  {% load cache %}
 
   {% block custom_css %}
   {% endblock %}
@@ -11,27 +12,32 @@
 
   <div class="container">
 
+    {% if request.user.profile.red_envelope %}
+      <p id='red-envelope'></p>
+    {% endif %}
+
     <div class="row">
-      <div class="col-1.5">
-        <h>Profile</h>
+      {% cache 300 first request.user.username %}
+      <div class="first-column">
         <p>{{profile.user.first_name}} {{profile.user.last_name}}</p>
-        <img class='round-im-100' src="{{ profile.small_avatar_url }}">
+        <img class='round-im-100 avatar' src="{{ profile.small_avatar_url }}" name = '{{profile.avatar_opening_link}}' style="vertical-align: middle;">
         {% if profile.status %}
           <p>{{profile.status}}</p>
         {% endif %}
-        {% if profile.user.id != request.user.id %}
-          <div class="subs-button">
-            {% if you_subscribed %}
-              <button type="button" class="btn btn-outline-info" id= "unsubscribe">Unsubscribe</button>
-            {% else %}
-              <button type="button" class="btn btn-info" id= "subscribe"> Subscribe </button>
-            {% endif %}
-          </div>
-        {% else %}
-            <a href="{% url 'avatarize' %}">Add avatar?</a>
-        {% endif %}
+
+
+
       </div>
-      <div class="col">
+      {% endcache %}
+      <div class="second-column">
+
+        <div class="gallery-container">
+            <div class="gallery-window">
+            </div>
+        </div>
+
+
+
         <div>
 
         <ul class="list-group notif-column">
@@ -45,33 +51,126 @@
 
               {% elif notification.about == 'Repost' %}
 
-                  <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
-                    <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
+
+
+                    {% if notification.content_object.text and notification.content_object.image_box %}
+
+                        <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                          <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a>
+                          {% for image in notification.content_object.image_box %}
+                            <img src="{{image.image_ultra.url}}">
+                          {% endfor %}
+                        </p>
+
+                    {% elif notification.content_object.text and not notification.content_object.image_box %}
+
+                        <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                          <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a></p>
+
+                    {% elif not notification.content_object.text and notification.content_object.image_box %}
+
+                        <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                          <a href="{% url 'post_detail' notification.content_object.id %}">Images({{notification.content_object.count_images}})</a>
+                          {% for image in notification.content_object.image_box %}
+                            <img src="{{image.image_ultra.url}}">
+                          {% endfor %}
+                        </p>
+
+                    {% endif %}
+
+
                   <p>{{notification.time}}</p>
 
               {% elif notification.about == 'PostComment' %}
 
-              <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
-                <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
-              <p>{{notification.time}}</p>
+
+                  {% if notification.content_object.text and notification.content_object.image_box %}
+
+                  <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                    <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a>
+                    {% for image in notification.content_object.image_box %}
+                      <img src="{{image.image_ultra.url}}">
+                    {% endfor %}
+                  </p>
+
+                  {% elif notification.content_object.text and not notification.content_object.image_box %}
+
+                      <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                        <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a></p>
+
+                  {% elif not notification.content_object.text and notification.content_object.image_box %}
+
+                      <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                        <a href="{% url 'post_detail' notification.content_object.id %}">Images({{notification.content_object.count_images}})</a>
+                        {% for image in notification.content_object.image_box %}
+                          <img src="{{image.image_ultra.url}}">
+                        {% endfor %}
+                      </p>
+
+                  {% endif %}
+                  <p>{{notification.time}}</p>
 
               {% elif notification.about == 'CommentComment' %}
 
               <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
-               "{{notification.content_object.short_text}}"</p>
+               <a href="{% url 'post_detail' notification.content_object.post.id %}">"{{notification.content_object.short_text}}"</a></p>
               <p>{{notification.time}}</p>
 
               {% elif notification.about == 'Like' %}
 
                   {% if not notification.content_object.is_repost %}
 
-                    <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
-                      <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.short_text}}"</a></p>
+                      {% if notification.content_object.text and notification.content_object.image_box %}
+
+                        <p><a href="{% url 'post_detail' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                          <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a>
+                          {% for image in notification.content_object.image_box %}
+                            <img src="{{image.image_ultra.url}}">
+                          {% endfor %}
+                        </p>
+
+                      {% elif notification.content_object.text and not notification.content_object.image_box %}
+
+                          <p><a href="{% url 'post_detail' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                            <a href="{% url 'post_detail' notification.content_object.id %}">"{{notification.content_object.short_text}}"</a></p>
+
+                      {% elif not notification.content_object.text and notification.content_object.image_box %}
+
+                          <p><a href="{% url 'post_detail' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                            <a href="{% url 'post_detail' notification.content_object.id %}">Images({{notification.content_object.count_images}})</a>
+                            {% for image in notification.content_object.image_box %}
+                              <img src="{{image.image_ultra.url}}">
+                            {% endfor %}
+                          </p>
+
+                      {% endif %}
 
                   {% else %}
 
-                    <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
-                      <a href="{% url 'wall' notification.content_object.author.id %}">"{{notification.content_object.repost.short_text}}"</a></p>
+                        {% if notification.content_object.text and notification.content_object.image_box %}
+
+                            <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                              <a href="{% url 'post_detail' notification.content_object.repost.id %}">"{{notification.content_object.repost.short_text}}"</a>
+                              {% for image in notification.content_object.image_box %}
+                                <img src="{{image.image_ultra.url}}">
+                              {% endfor %}
+                            </p>
+
+                        {% elif notification.content_object.text and not notification.content_object.image_box %}
+
+                          <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                            <a href="{% url 'post_detail' notification.content_object.repost.id %}">"{{notification.content_object.repost.short_text}}"</a></p>
+
+                        {% elif not notification.content_object.text and notification.content_object.image_box %}
+
+                          <p><a href="{% url 'wall' notification.notificator.id %}"><img class='round-im-50' src="{{notification.notificator.profile.ultra_avatar_url}}" style="vertical-align: middle;">{{notification.notificator.first_name}} {{notification.notificator.last_name}}</a> {{notification.text}}
+                            <a href="{% url 'post_detail' notification.content_object.repost.id %}">Images({{notification.content_object.repost.count_images}})</a>
+                            {% for image in notification.content_object.image_box %}
+                              <img src="{{image.image_ultra.url}}">
+                            {% endfor %}
+                          </p>
+
+                        {% endif %}
 
 
                   {% endif %}
@@ -88,9 +187,38 @@
         </div>
 
       </div>
-      <div class="col-2">
-        <h>Third column</h>
-      </div>
+      {% cache 300 third request.user.username %}
+          <div class="third-column">
+            <div class="btn-group" role="group" aria-label="First group">
+              <button type="button" class="btn btn-outline-info my_subs">Following</button>
+              <button type="button" class="btn btn-outline-info onme_subs">Followers</button>
+            </div>
+            <ul class="list-group">
+              <div class="mysubs-group">
+              {% for subscrib in my_subscribs %}
+                <a href="{% url 'wall' subscrib.to.id %}">
+                  <li class="list-group-item" style="width: 400px;">
+                          <img class='round-im-50' src="{{subscrib.to.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                          <p class ='list-subscribs' style="float:right;">{{subscrib.to.first_name}} {{subscrib.to.last_name}}</p>
+                  </li>
+                </a>
+              {% endfor %}
+              </div>
+            </ul>
+            <ul class="list-group">
+              <div class="subs_onme_group">
+              {% for subscrib in subscrib_onme %}
+                <a href="{% url 'wall' subscrib.who.id %}">
+                  <li class="list-group-item" style="width: 400px;">
+                          <img class='round-im-50' src="{{subscrib.who.profile.ultra_avatar_url}}" style="vertical-align: middle;">
+                          <p class ='list-subscribs' style="float:right;">{{subscrib.who.first_name}} {{subscrib.who.last_name}}</p>
+                  </li>
+                </a>
+              {% endfor %}
+              </div>
+            </ul>
+          </div>
+      {% endcache %}
     </div>
 
   </div>
@@ -102,6 +230,8 @@
 
     <script src = "{% static 'js/ajax-notification.js' %}"></script>
     <script src = "{% static 'js/myscripts.js' %}"></script>
+    <script src = "{% static 'js/ajax-update-messages.js' %}"></script>
+
 
   {% endblock %}
 

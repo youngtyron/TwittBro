@@ -11,36 +11,24 @@
 
   <div class="container">
 
-    <div class="row text-center">
 
-      {% if messages %}
-      <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-
-    </div>
 
     <div class="row">
-      <div class="col-1.5">
-          <h>First column</h>
-      </div>
+
       <div class="col">
 
-      <p>Are you sure you want to delete your profile? You won't be able to cancel this action</p>
+        <div class="square_box_div">
 
-      <a href="{% url 'delete_user_action' %}"><button type="button" class="btn btn-dark delete-confirm">Yes</button></a>
-      <a href="{% url 'edit_profile' %}"><button type="button" class="btn btn-light">No</button></a>
+            <p>Are you sure you want to delete your profile? You won't be able to cancel this action</p>
 
+            <a href="{% url 'delete_user_action' %}"><button type="button" class="btn btn-dark delete-confirm">Yes</button></a>
+            <a href="{% url 'edit_profile' %}"><button type="button" class="btn btn-light">No</button></a>
 
+        </div>
 
 
       </div>
-      <div class="col-2">
-        <h>Third column</h>
-      </div>
+
     </div>
 
   </div>
@@ -53,6 +41,3 @@
     <script src = "{% static 'js/myscripts.js' %}"></script>
 
   {% endblock %}
-
-
-  <!-- <p class = 'email-hidden-form'>New email: <textarea name="email" id="email" cols="1" rows="1" maxlength="50" class="form-control"></textarea></p> -->

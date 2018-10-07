@@ -11,9 +11,85 @@ from django.http import HttpResponse
 from django.contrib.contenttypes.models import ContentType
 from likes.models import Like
 from django.http import JsonResponse
-from messenger.models import Message, Chat, ImageMessage
+from messenger.models import Message, Chat, ImageMessage, SessionMessages
 from django.core.cache import cache
 from django.core.cache.utils import make_template_fragment_key
+from profiles.forms import ChangeEmailForm, AvatarForm
+
+
+@login_required
+def ajax_update_messages(request):
+    if request.method == 'POST' and request.is_ajax:
+        updated_chats = request.user.profile.updated_chats()
+        if updated_chats == []:
+            context = {'none': True}
+        else:
+            i = 0
+            context = {}
+            for chat in updated_chats:
+                if chat.is_group_chat():
+                    chat_context = {'chat' : True, 'name':chat.name, 'num': chat.updated_messages(request.user).count()}
+                else:
+                    chat_context = {'f_n':chat.companion(request.user).first_name, 'l_n':chat.companion(request.user).last_name, 'num':chat.updated_messages(request.user).count()}
+                if str(request.META['HTTP_REFERER']).endswith('messages/chats/'):
+                    if chat.facial_message().text:
+                        chat_context.update({'chatlist':True, 'text': chat.facial_message().text, 'ava' : chat.facial_message().writer.profile.micro_avatar_url(), 'id': chat.id})
+                    else:
+                        chat_context.update({'chatlist':True, 'ava' : chat.facial_message().writer.profile.micro_avatar_url(), 'id': chat.id})
+                context.update({i:chat_context})
+                i = i+1
+        request.user.profile.reassign()
+        return JsonResponse(context)
+
+@login_required
+def ajax_avatarize(request):
+    if request.method == 'POST' and request.is_ajax:
+        profile = get_object_or_404(Profile, user = request.user)
+        profile.avatar = request.FILES.get('avatar')
+        profile.save()
+        return JsonResponse({'avatar': profile.avatar_opening_link()})
+
+@login_required
+def ajax_avatar_remove(request):
+    if request.method == 'POST' and request.is_ajax:
+        profile = get_object_or_404(Profile, user = request.user)
+        profile.avatar.delete()
+        profile.save()
+        key = make_template_fragment_key('first', [request.user.username])
+        cache.delete(key)
+        return HttpResponse()
+
+@login_required
+def ajax_update_profile(request):
+    if request.method == 'POST' and request.is_ajax:
+        profile = get_object_or_404(Profile, user = request.user)
+        context = {}
+        if request.POST['email']:
+            new_email_form = ChangeEmailForm(request.POST)
+            if new_email_form.is_valid():
+                new_email = new_email_form.clean_email()
+                request.user.email = new_email
+                request.user.save()
+                context.update({'email':new_email})
+        if 'private' in request.POST.keys():
+            if request.POST.get('private') == 'close-it':
+                profile.is_closed = True
+                profile.save()
+                context.update({'closed':True})
+            elif request.POST.get('private') == 'open-it':
+                profile.is_closed = False
+                profile.save()
+                context.update({'opened':True})
+        if request.FILES:
+            avatar_form = AvatarForm(request.POST, request.FILES)
+            if avatar_form.is_valid():
+                profile.avatar = avatar_form.cleaned_data['avatar']
+                profile.save()
+                key = make_template_fragment_key('first', [request.user.username])
+                cache.delete(key)
+                avatar = "<img class='round-im-100 avatar' src='"+profile.small_avatar_url()+"' name = '"+profile.avatar_opening_link()+"' style='vertical-align: middle;'>"
+                context.update({'avatar':avatar})
+        return JsonResponse(context)
 
 
 def ajax_scroll_people(request):
@@ -80,7 +156,7 @@ def ajax_scroll_postresults(request):
             if post.image_box():
                     imagelist = ''
                     for im in post.image_box():
-                        imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
+                        imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' class ='mini-images' name = '"+im.image.url+"' style='width: 50px; height: 50px'>" + " "
                     post_context.update({'images':imagelist})
             context.update({c:post_context})
             c+=1
@@ -118,7 +194,7 @@ def ajax_scroll_news(request):
                 if post.repost.image_box():
                     imagelist = ''
                     for im in post.repost.image_box():
-                        imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
+                        imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' class ='mini-images' name = '"+im.image.url+"' style='width: 50px; height: 50px'>" + " "
                     post_context = {'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'id':post.id,
                                     'avatar' : image, 'link' : author_link, 'repost' : repost, 'images' : imagelist, 'you_liked' :you_liked, 'l_q' : post.likes_quanity,
                                     'c_q':post.comments_quanity
@@ -135,7 +211,7 @@ def ajax_scroll_news(request):
                 if post.image_box():
                     imagelist = ''
                     for im in post.image_box():
-                        imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
+                        imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' class ='mini-images' name = '"+im.image.url+"' style='width: 50px; height: 50px'>" + " "
                     post_context = {'f_n' : post.author.first_name, 'l_n':post.author.last_name, 'date' : post.pub_date.strftime("%b. %d, %Y, %I:%M %p"), 'id':post.id,
                                     'avatar' : image, 'link' : author_link, 'repost' : repost, 'images' : imagelist, 'you_liked' :you_liked, 'l_q' : post.likes_quanity,
                                     'c_q':post.comments_quanity
@@ -181,7 +257,7 @@ def ajax_scroll_wall(request, user_id):
             if post.image_box():
                 imagelist = ''
                 for im in post.image_box():
-                    imagelist = imagelist + "<a href=" + im.image.url + "><img src = '" + im.image_ultra.url +  "' style='width: 50px; height: 50px'></a>" + " "
+                    imagelist = imagelist + "<img src = '" + im.image_ultra.url +  "' class ='mini-images' name = '"+im.image.url+"' style='width: 50px; height: 50px'>" + " "
                 post_context.update({'images':imagelist})
             if post.is_repost:
                 author_link = "http://localhost:8000/" + str(post.repost.author.id)

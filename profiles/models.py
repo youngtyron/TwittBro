@@ -11,19 +11,14 @@ import datetime
 from datetime import timezone
 from datetime import timedelta
 from posts.models import Post
-from messenger.models import Message, Chat
+from messenger.models import Message, Chat, SessionMessages
+from django.shortcuts import get_object_or_404
 
 # pip install django-imagekit -------- ТАК СКАИЧВАТЬ ИМАДЖКИТ!!!
 
 # Create your models here.
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
-    Male = 'Male'
-    Female = 'Female'
-    No = 'Not specified'
-    gender_choices = ((Male, 'Male'),(Female, 'Female'), (No, 'Not specified'))
-    gender = models.CharField(max_length=100, choices = gender_choices, blank =True, null = True)
-    summary = models.CharField(max_length = 500, blank =True, null = True)
     status = models.CharField(max_length = 255, blank =True, null = True)
     registrated = models.DateField()
     birth_date = models.DateField(blank =True, null = True)
@@ -40,6 +35,33 @@ class Profile(models.Model):
 
     def __str__(self):
         return '%s %s' % (self.user.first_name, self.user.last_name)
+
+    def reassign(self):
+        sessionmessage = SessionMessages.objects.filter(user = self.user)
+        if sessionmessage.exists():
+            sessionmessage.update(time=datetime.datetime.now())
+            return
+        else:
+            SessionMessages.objects.create(user = self.user, time = datetime.datetime.now())
+            return
+
+    def disassign(self):
+        sessionmessage = SessionMessages.objects.filter(user = self.user)
+        if sessionmessage.exists():
+            sessionmessage.delete()
+            return
+        else:
+            return
+
+    def updated_chats(self):
+        chats = Chat.objects.filter(member = self.user)
+        sessionmessages = get_object_or_404(SessionMessages, user = self.user)
+        updated_chats = []
+        for chat in chats:
+            new_messages = chat.messages.filter(is_read = False).exclude(who_read = self.user).filter(pub_date__gt = sessionmessages.time)
+            if new_messages.exists():
+                updated_chats.append(chat)
+        return updated_chats
 
     def my_following(self):
         following = []
@@ -73,7 +95,7 @@ class Profile(models.Model):
             return False
 
     def has_access(self, user):
-        if self == user.profile:
+        if self.user == user:
             return True
         elif user.profile.is_closed:
             admit = Admittance.objects.filter(for_user = self.user, on_page = user)
@@ -81,6 +103,17 @@ class Profile(models.Model):
                 return True
             else:
                 return False
+        else:
+            return True
+
+    def red_envelope(self): #ПРОВЕРКА, ИМЕЕТ ЛИ ПРОФИЛЬ НЕПРОЧИТАННЫЕ СООБЩЕНИЯ
+        chats = Chat.objects.filter(member = self.user)
+        i = 0
+        for chat in chats:
+            if chat.has_unread_messages(self.user):
+                i =i+ 1
+        if i <1:
+            return False
         else:
             return True
 
@@ -106,6 +139,12 @@ class Profile(models.Model):
     def micro_avatar_url(self):
         if self.avatar and hasattr(self.avatar, 'url'):
             return self.avatar_micro.url
+        else:
+            return '/static/images/default_ava.jpg'
+
+    def avatar_opening_link(self):
+        if self.avatar and hasattr(self.avatar, 'url'):
+            return self.avatar.url
         else:
             return '/static/images/default_ava.jpg'
 

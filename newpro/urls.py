@@ -27,13 +27,17 @@ from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.first_page, name = 'first_page'),
+    path('ajax_update_messages/', ajax.ajax_update_messages),
     path('mywall/', views.mywall, name ='mywall'),
     path('login/', views.login_user, name = 'login'),
     path('logout/', views.logout_user, name='logout'),
     path('registration/', views.registration, name = 'registration'),
-    path('create_profile/', views.create_profile, name = 'create_profile'),
+    path('avatarize/', views.avatarize, name = 'avatarize'),
+    path('avatarize/ajax_avatarize/', ajax.ajax_avatarize),
     path('change_password/', views.change_password, name = 'change_password'),
     path('edit_profile/', views.edit_profile, name = 'edit_profile'),
+    path('edit_profile/ajax_update_profile/', ajax.ajax_update_profile),
+    path('edit_profile/ajax_avatar_remove/', ajax.ajax_avatar_remove),
     path('delete_user_confirm/', views.delete_user_confirm, name = 'delete_user_confirm'),
     path('delete_user_action/', views.delete_user_action, name= 'delete_user_action'),
     path('password/reset/', PasswordResetView.as_view(), name = 'password_reset'),
@@ -70,7 +74,6 @@ urlpatterns = [
     path('<int:user_id>/ajax_write/', ajax.ajax_write, name ='ajax_write'),
     path('<int:user_id>/ajax_comment/', ajax.ajax_comment, name ='ajax_comment'),
     path('<int:user_id>/ajax_comment_comment/', ajax.ajax_comment_comment, name ='ajax_comment_comment'),
-    path('avatarize/', views.avatarize, name = 'avatarize'),
     path('notifications/', views.notifications, name = 'notifications'),
     path('liked_objects/', views.liked_objects, name = 'liked_objects'),
     path('notifications/ajax_notif_update/', ajax.ajax_notif_update, name = 'ajax_notif_update'),
@@ -81,10 +84,6 @@ urlpatterns = [
     path('post/<int:post_id>/ajax_comment/', ajax.ajax_comment_from_detail),
     path('post/<int:post_id>/ajax_comment_comment/', ajax.ajax_comment_comment_from_detail),
     path('post/<int:post_id>/ajax_post_delete_from_detail/', ajax.ajax_post_delete_from_detail),
-
-
-
-    # path('favicon\.ico', RedirectView.as_view(url='/static/images/favicon.ico'), name='favicon'),
 
     # path('captcha/', include('captcha.urls')),
 ]
