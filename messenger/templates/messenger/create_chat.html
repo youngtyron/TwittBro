@@ -12,6 +12,7 @@
 
 
   <div class="container">
+
     {% if request.user.profile.red_envelope %}
       <p id='red-envelope'></p>
     {% endif %}
@@ -59,7 +60,11 @@
 
         </div>
 
-      <button type="success" class="btn btn-dark cust-button" style="margin-top: 10px;" id= 'make-choice'>Start chat</button>
+        {% if 'add_member' in request.path %}
+            <button type="success" class="btn btn-dark cust-button" style="margin-top: 10px;" id= 'add-member'>Add this users</button>
+        {% else %}
+            <button type="success" class="btn btn-dark cust-button" style="margin-top: 10px;" id= 'make-choice'>Start chat</button>
+        {% endif %}
 
 
       <div class="hidden-redirect">

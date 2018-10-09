@@ -37,6 +37,15 @@ def ajax_update_chat(request, chat_id):
             context= {'none':True}
             return JsonResponse(context)
 
+@login_required
+def ajax_drop_chat(request, chat_id):
+    if request.method == 'POST' and request.is_ajax:
+        chat = get_object_or_404(Chat, id = chat_id)
+        profile = get_object_or_404(Profile, user = request.user)
+        chat.member.remove(request.user)
+        chat.save()
+        profile.dialogues.remove(chat)
+        return HttpResponse()
 
 @login_required
 def chat_list(request):
@@ -112,6 +121,26 @@ def create_chat(request):
     subscrib_onme = Subscrib.objects.filter(to = request.user)
     my_subscribs = Subscrib.objects.filter(who = request.user)
     return render (request, 'messenger/create_chat.html', {'subscribs': subscribs, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
+
+
+@login_required
+def add_member(request, chat_id):
+    if request.method == 'POST':
+        chat = get_object_or_404(Chat, id = chat_id)
+        subscribs = Subscrib.objects.filter(who = request.user)
+        potential_members = []
+        for subscrib in subscribs:
+            if not subscrib.to in chat.members():
+                potential_members.append(subscrib)
+        subscrib_onme = Subscrib.objects.filter(to = request.user)
+        my_subscribs = Subscrib.objects.filter(who = request.user)
+        profile = Profile.objects.get(user = request.user)
+        if profile.has_unread_notif():
+            notif = True
+        else:
+            notif = False
+            return render (request, 'messenger/create_chat.html', {'subscribs': potential_members, 'profile':profile, 'notif':notif, 'subscrib_onme':subscrib_onme, 'my_subscribs':my_subscribs})
+
 
 @login_required
 def ajax_message(request, chat_id):
@@ -250,6 +279,23 @@ def ajax_make_chat(request):
                             return JsonResponse(context)
 
 @login_required
+def ajax_add_member(request, chat_id):
+    if request.method == 'POST' and request.is_ajax:
+        dict_k = request.POST.keys()
+        list_k = (list(dict_k)[0])
+        users = []
+        i = 0
+        ids = list_k.split(',')
+        chat = get_object_or_404(Chat, id = chat_id)
+        for id in ids:
+            user = get_object_or_404(User, id = int(id))
+            profile = get_object_or_404(Profile, user = user)
+            chat.member.add(user)
+            profile.dialogues.add(chat)
+        context = {'chat_id':chat.id}
+        return JsonResponse(context)
+
+@login_required
 def ajax_change_chat_name(request, chat_id):
     if request.method == 'POST' and request.is_ajax:
         name = request.POST['name']
@@ -265,7 +311,6 @@ def ajax_change_chat_name(request, chat_id):
 @login_required
 def ajax_change_chat_avatar(request, chat_id):
     if request.method == 'POST' and request.is_ajax:
-        print(request.POST)
         avatar = request.FILES.get('avatar')
         chat = get_object_or_404(Chat, id = chat_id)
         chat.pict = avatar

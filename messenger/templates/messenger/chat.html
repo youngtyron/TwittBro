@@ -78,7 +78,14 @@
 
             </div>
 
+            <div class="hidden-redirect">
 
+
+
+              <form action="" id="redirect-form" method="POST" style = 'display:none'>
+                {% csrf_token%}
+              <input type="hidden" name="var" value="val">
+              </form>
 
 
 
@@ -87,6 +94,12 @@
             {% for member in chat.members %}
               <a class ='chat-member-link' href="{% url 'wall' member.id %}"><p><img src="{{member.profile.ultra_avatar_url}}" class="round-im-50">{{member.first_name}} {{member.last_name}}</p></a>
             {% endfor %}
+            <a href="#" class='add-member-link'>Add new chat member?</a>
+            <form action="{% url 'messenger:add_member' chat.id %}" class="add-member-form" method="POST">
+              {% csrf_token%}
+            <input type="hidden">
+            </form>
+            <p style="color:rgb(0, 123, 255);" class='drop-chat'>Leave this chat?</p>
             </div>
           {% endif %}
         <div class="scroll-message-box">
