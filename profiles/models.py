@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 import PIL
-# from PIL import Image
 from imagekit.models.fields import ImageSpecField
 from imagekit.processors import ResizeToFit, Adjust, ResizeToFill
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -16,7 +15,6 @@ from django.shortcuts import get_object_or_404
 
 # pip install django-imagekit -------- ТАК СКАИЧВАТЬ ИМАДЖКИТ!!!
 
-# Create your models here.
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     status = models.CharField(max_length = 255, blank =True, null = True)

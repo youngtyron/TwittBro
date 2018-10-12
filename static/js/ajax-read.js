@@ -34,7 +34,6 @@ $(this).one('mousemove',function(e){
   $.ajax({
     type : 'POST',
     url : 'ajax_read_message/',
-    // contentType: false,
     processData: false,
     success: function(context){
       not_my_mes = $('.not-read-messages').not( "." + context.me);

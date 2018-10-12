@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'likes',
     'messenger',
     'imagekit',
-    # 'captcha',  КАКИЕ ТО ПРОБЛЕМЫ С УСТАНОВКОЙ! ЗАПУСТИЛ PYTHON3 MANAGE.PY TEST CAPTCHA, НО ВЫДАЛО ОШИБКУ
 ]
 
 MIDDLEWARE = [

@@ -2,14 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from likes.models import Like
-# from dislikes.models import Dislike
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 import PIL
-# from PIL import Image
 from imagekit.models.fields import ImageSpecField
 from imagekit.processors import ResizeToFit, Adjust, ResizeToFill
-# Create your models here.
 
 
 
@@ -23,6 +20,7 @@ class Post(models.Model):
     comments_quanity = models.IntegerField(default = 0)
     reposts_quanity = models.IntegerField(default = 0)
     likes = GenericRelation(Like, related_query_name='posts')
+
     class Meta:
         ordering = ['-pub_date']
 
@@ -46,6 +44,9 @@ class Post(models.Model):
     def image_box(self):
         image_box = ImagePost.objects.filter(post = self)
         return image_box
+
+    def count_images(self):
+        return ImagePost.objects.filter(post = self).count()
 
     def short_text(self):
         if self.text:

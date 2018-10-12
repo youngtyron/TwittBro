@@ -35,7 +35,6 @@ from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.cache.utils import make_template_fragment_key
-# from django.urls import reverse
 
 class OnePostView(LoginRequiredMixin, DetailView):
     model = Post
@@ -107,7 +106,6 @@ class PeopleListView(LoginRequiredMixin, ListView):
             results = []
             while i <len(N):
                 users = User.objects.filter(first_name__icontains = N[i]) | User.objects.filter(last_name__icontains = N[i])
-                print(users)
                 for u in users:
                     results.append(u.profile)
                 i+=1

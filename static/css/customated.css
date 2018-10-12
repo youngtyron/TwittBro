@@ -1,12 +1,75 @@
+.new-message{
+	position: fixed;
+	left: 5px;
+}
+
+.gallery-container{
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	opacity: 1;
+	z-index: 101!important;
+	display: none;
+}
+
+.gallery-window{
+	border: 3px #000 solid;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	background: white;
+	z-index: 100!important;
+}
+
+.left-arrow{
+	color: white;
+	opacity: 0.1;
+	position: absolute;
+	right: 95%;
+	top: 50%;
+	z-index: 101!important;
+}
+
+.right-arrow{
+	color: white;
+	opacity: 0.1;
+	position: absolute;
+	left: 95%;
+	top: 50%;
+	z-index: 101!important;
+}
+
 .scroll-message-box {
 height: 700px!important; /* высота нашего блока */
-width: 1000px!important; /* ширина нашего блока */
+width: 800px!important; /* ширина нашего блока */
 background: #fff!important; /* цвет фона, белый */
 border: 1px solid #C1C1C1!important; /* размер и цвет границы блока */
 overflow-y: scroll!important; /* прокрутка по вертикали */
 margin-top: 20px;
 }
 
+.first-column{
+	float: left;
+	width: 171px!important;
+}
+
+.second-column{
+	width: 773px!important;
+}
+
+.third-column{
+	float:right!important;
+	right: 330px;
+	position: absolute;
+	top: 14%;
+	width: 171px!important;
+}
+
+#message-list{
+	width: 773px!important;
+}
 
 .my-navbar{
 	background-color: purple!important;
@@ -19,10 +82,47 @@ margin-top: 20px;
 
 }
 
+.post-square{
+	margin-top: 20px;
+}
+
+.hidden-chat-settings{
+	display: none;
+}
+
+.chat-members{
+	display: none;
+}
+
+.hidden-name-form{
+	display: none;
+}
+
+.hidden-avatar-form{
+	display: none;
+}
+
+.people_elem{
+	font-weight:bold;
+}
+
+.avatar-deleting{
+	color:rgb(0, 123, 255);
+}
+
+.square_box_div{
+	height: 700px;
+	width: 500px;
+	margin:50px auto;
+
+}
+
+.cust-button{
+	background-color: purple!important;
+}
 
 .three-columns{
 	margin-left: -80px!important;
-	/* width: 1400px; */
 }
 
 .open_image {
@@ -54,7 +154,11 @@ margin-top: 20px;
 
 .post_detail{
   text-decoration: none!important;
+}
 
+.chat-member-link{
+	text-decoration: none!important;
+	color: black;
 }
 
 .post-text {
@@ -102,16 +206,7 @@ margin-top: 20px;
 }
 
 
-/* .post-column {
-		width: 99%!important;
-    border: 1px 4px solid black; /* Параметры рамки */
-    position:relative!important;
-    z-index:5;
-} */
-
 .notif-column {
-  /* display: block;  */
-   border: 4px solid black!important; /* Параметры рамки */
    position:relative!important;
    z-index:5;
 
@@ -126,9 +221,6 @@ margin-top: 20px;
     opacity: 0.3;
 }
 
-.hidden-post-form{
-  display: none;
-}
 
 #id_image_message{
   display: none;
@@ -140,4 +232,8 @@ margin-top: 20px;
 
 .subs_onme_group{
   display: none;
+}
+
+.hidden-avatar-form{
+	display: none;
 }

@@ -36,7 +36,6 @@ $(this).one('mousemove',function(e){
   $.ajax({
     type : 'POST',
     url : 'ajax_notif_update/',
-    // contentType: false,
     processData: false,
   });
 return false;
