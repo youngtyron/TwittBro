@@ -31,6 +31,7 @@ from django.views.decorators.cache import never_cache
 from django.core.exceptions import ValidationError
 from django.utils.http import urlsafe_base64_decode
 from django.views.generic.list import ListView
+from django.views.generic.base import TemplateView
 from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
@@ -128,6 +129,51 @@ class PeopleListView(LoginRequiredMixin, ListView):
         context['my_subscribs'] = my_subscribs
         return context
 
+class NewsView(TemplateView):
+    template_name = 'root/news.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = get_object_or_404(Profile, user = self.request.user)
+        context['profile'] = profile
+        if profile.has_unread_notif():
+            notif = True
+        else:
+            notif = False
+        context['notif'] = notif
+        context ['form_st']=StatusForm(prefix = 'status')
+        context ['form_com']=CommentForm(prefix = 'comment')
+        context ['subscrib_onme'] = Subscrib.objects.filter(to = self.request.user)
+        users = []
+        subscribs = Subscrib.objects.filter(who = self.request.user)
+        for s in subscribs:
+            user = s.to
+            users.append(user)
+        users.append(self.request.user)
+        context ['news_posts'] = Post.objects.filter(author__in = users)[:10]
+        return context
+
+@login_required
+def news(request):
+    profile = get_object_or_404(Profile, user = request.user)
+    subscribs = Subscrib.objects.filter(who = request.user)
+    form_st = StatusForm(prefix = 'status')
+    form_com = CommentForm(prefix = 'comment')
+    subscrib_onme = Subscrib.objects.filter(to = request.user)
+    if profile.has_unread_notif():
+        notif = True
+    else:
+        notif = False
+    users = []
+    for s in subscribs:
+        user = s.to
+        users.append(user)
+    users.append(request.user)
+    news_posts = Post.objects.filter(author__in = users)[:10]
+    context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif,
+                'form_com' : form_com, 'subscribs' : subscribs, 'subscrib_onme':subscrib_onme}
+    return render (request, 'root/news.html', context)
+
 @login_required
 def search(request):
     q1 = request.GET.get('question')
@@ -155,27 +201,6 @@ UserModel = get_user_model()
 INTERNAL_RESET_URL_TOKEN = 'set-password'
 INTERNAL_RESET_SESSION_TOKEN = '_password_reset_token'
 
-
-@login_required
-def news(request):
-    profile = get_object_or_404(Profile, user = request.user)
-    subscribs = Subscrib.objects.filter(who = request.user)
-    form_st = StatusForm(prefix = 'status')
-    form_com = CommentForm(prefix = 'comment')
-    subscrib_onme = Subscrib.objects.filter(to = request.user)
-    if profile.has_unread_notif():
-        notif = True
-    else:
-        notif = False
-    users = []
-    for s in subscribs:
-        user = s.to
-        users.append(user)
-    users.append(request.user)
-    news_posts = Post.objects.filter(author__in = users)[:10]
-    context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif,
-                'form_com' : form_com, 'subscribs' : subscribs, 'subscrib_onme':subscrib_onme}
-    return render (request, 'root/news.html', context)
 
 
 def wall(request, user_id):

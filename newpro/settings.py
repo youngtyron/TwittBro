@@ -97,7 +97,7 @@ DATABASES = {
         'USER': 'twittbrouser',
         'PASSWORD': 'twittbropassword',
         'HOST':'127.0.0.1',
-        'PORT': ,
+        'PORT': '',
     }
 }
 

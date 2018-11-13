@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from .views import e_handler404, e_handler500, MyPasswordResetConfirmView, PeopleListView, OnePostView
+from .views import e_handler404, e_handler500, MyPasswordResetConfirmView, PeopleListView, OnePostView, NewsView
 from django.conf.urls.static import  static
 from . import views, ajax
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetCompleteView
@@ -30,7 +30,7 @@ urlpatterns = [
     path('password/reset/complete/', PasswordResetCompleteView.as_view(), name = 'password_reset_complete'),
     path('people/', PeopleListView.as_view(), name = 'people'),
     path('people/ajax_scroll_people/', ajax.ajax_scroll_people),
-    path('news/', views.news, name = 'news'),
+    path('news/', NewsView.as_view(), name ='news'),
     path('news/ajax_scroll_news/', ajax.ajax_scroll_news),
     path('news/ajax_comment/', ajax.ajax_comment_from_news),
     path('news/ajax_comment_comment/', ajax.ajax_comment_comment_from_news),
