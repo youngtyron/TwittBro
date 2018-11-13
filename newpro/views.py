@@ -153,26 +153,6 @@ class NewsView(TemplateView):
         context ['news_posts'] = Post.objects.filter(author__in = users)[:10]
         return context
 
-@login_required
-def news(request):
-    profile = get_object_or_404(Profile, user = request.user)
-    subscribs = Subscrib.objects.filter(who = request.user)
-    form_st = StatusForm(prefix = 'status')
-    form_com = CommentForm(prefix = 'comment')
-    subscrib_onme = Subscrib.objects.filter(to = request.user)
-    if profile.has_unread_notif():
-        notif = True
-    else:
-        notif = False
-    users = []
-    for s in subscribs:
-        user = s.to
-        users.append(user)
-    users.append(request.user)
-    news_posts = Post.objects.filter(author__in = users)[:10]
-    context = {'news_posts' : news_posts, 'profile':profile, 'form_st' : form_st, 'notif': notif,
-                'form_com' : form_com, 'subscribs' : subscribs, 'subscrib_onme':subscrib_onme}
-    return render (request, 'root/news.html', context)
 
 @login_required
 def search(request):
